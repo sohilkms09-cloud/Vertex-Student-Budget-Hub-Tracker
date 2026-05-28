@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Finance Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <div id="auth-screen" class="full-screen-gate">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <span class="brand-icon">⚡</span>
+                <h2>NEXUS<span class="brand-accent">FINANCE</span></h2>
+            </div>
+            <h3>Secure Sync Gateway</h3>
+            <p>Connect your cloud node profile to authenticate database arrays and unlock your workspace panel.</p>
+            
+            <div class="auth-form">
+                <div class="input-wrapper">
+                    <input type="email" id="auth-email-input" placeholder="Email Address" required>
+                </div>
+                <div class="input-wrapper">
+                    <input type="password" id="auth-password-input" placeholder="Password Key" required>
+                </div>
+                
+                <button id="login-btn" class="btn-primary-auth">Sign Into Workspace</button>
+                <button id="register-btn" class="btn-secondary-auth">Initialize New Profile</button>
+            </div>
+            <p class="simulation-notice">💡 Sandbox Simulation active. Click either button above to instantly bypass and unlock!</p>
+        </div>
+    </div>
+
+    <div id="main-dashboard-wrapper" style="display: none;">
+        <div class="dashboard-layout">
+            
+            <aside class="sidebar">
+                <div class="sidebar-brand">
+                    <span class="brand-icon">⚡</span>
+                    <h2>NEXUS</h2>
+                </div>
+                <nav class="sidebar-nav">
+                    <div class="nav-item active">📊 Dashboard</div>
+                    <div class="nav-item">📈 Analytics</div>
+                    <div class="nav-item">📜 Transactions</div>
+                    <div class="nav-item">🛡️ Tax Planner</div>
+                    <div class="nav-item">⚙️ Settings</div>
+                </nav>
+                <div class="sidebar-footer">
+                    <div class="user-info">
+                        <div class="avatar">👤</div>
+                        <span id="user-display-status">Active Session</span>
+                    </div>
+                    <button id="logout-btn" class="btn-logout">Exit System</button>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                
+                <header class="dashboard-header">
+                    <div class="header-search">
+                        <input type="text" id="search-input" placeholder="Search transactions...">
+                    </div>
+                    <div class="header-controls">
+                        <label class="student-toggle-label">
+                            <input type="checkbox" id="student-mode-toggle"> 🎓 Student Mode
+                        </label>
+                        <select id="currency-select" class="clean-select">
+                            <option value="₹">Rupees (₹)</option>
+                            <option value="$">Dollars ($)</option>
+                        </select>
+                    </div>
+                </header>
+
+                <div class="dashboard-viewport">
+                    
+                    <div class="metrics-row">
+                        <div class="summary-card">
+                            <span class="card-label">Total Allocated Budget</span>
+                            <h2 id="total-budget">₹0.00</h2>
+                            <span class="card-trend up">↑ 10.32%</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="card-label">Cumulative Debited Outflows</span>
+                            <h2 id="total-expenses">₹0.00</h2>
+                            <span class="card-trend down">↓ 4.32%</span>
+                        </div>
+                        <div class="summary-card highlight-card">
+                            <span class="card-label">Available Balance Buffer</span>
+                            <h2 id="balance-left">₹0.00</h2>
+                            <span class="card-trend steady">Stable Pacing</span>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        
+                        <div class="left-panel-column">
+                            
+                            <div class="glass-card status-card-flex">
+                                <div>
+                                    <h3 class="mini-label">Habit Index Health Rating</h3>
+                                    <div id="health-score-value" class="giant-score">100</div>
+                                </div>
+                                <div class="status-badge" id="health-score-status">Excellent</div>
+                            </div>
+
+                            <div class="glass-card">
+                                <h3>Your Capital Pacing Analytics</h3>
+                                <div class="chart-container-large">
+                                    <canvas id="history-trend-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="utilities-grid">
+                                <div class="glass-card flex-1">
+                                    <h3>🎙️ Voice Stream Input Decoder</h3>
+                                    <button id="voice-start-btn" class="btn-action-pill">🎤 Stream Vocal Command</button>
+                                    <p id="voice-status" class="sub-log-text">Acoustic nodes active.</p>
+                                </div>
+                                <div class="glass-card flex-1">
+                                    <h3>📸 Matrix Receipt Scanner</h3>
+                                    <button id="scanner-area" class="btn-action-pill">📁 Drop Layout Document</button>
+                                    <input type="file" id="scanner-file-input" accept="image/*" style="display: none;">
+                                    <p id="scanner-log-status" class="sub-log-text">Sensors offline.</p>
+                                    <div id="scanner-laser" class="laser-beam"></div>
+                                </div>
+                            </div>
+
+                            <div class="glass-card">
+                                <h3>Append Structured Financial Record</h3>
+                                <form id="expense-form-element" class="inline-input-form">
+                                    <input type="text" id="expense-name" placeholder="Item Name" required>
+                                    <input type="number" id="expense-amount" placeholder="Cost Amount" required>
+                                    <select id="expense-category" class="clean-select"></select>
+                                    <select id="expense-day" class="clean-select"></select>
+                                    <button type="submit" class="btn-execute">Log Record</button>
+                                </form>
+                            </div>
+
+                            <div class="glass-card control-dock-card">
+                                <h3>Workspace Parameter Initialization Utilities</h3>
+                                <div class="dock-actions-row">
+                                    <input type="number" id="monthly-budget-input" placeholder="Configure New Cap Limit">
+                                    <button id="set-budget-btn" class="btn-execute">Initialize Cap</button>
+                                    <button id="auto-allocate-btn" class="btn-utility">💡 Auto-Allocate Template</button>
+                                    <button id="export-csv-btn" class="btn-utility">📥 Export Spreadsheets</button>
+                                    <button id="archive-month-btn" class="btn-utility">📦 Archive Cycle</button>
+                                    <button id="clear-all-btn" class="btn-danger-action">🔄 Wipe Database Matrices</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="right-panel-column">
+                            
+                            <div class="glass-card">
+                                <h3>Category Asset Distribution</h3>
+                                <div class="chart-container-doughnut">
+                                    <canvas id="expense-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="glass-card">
+                                <div class="flex-spread-header">
+                                    <h3>🛡️ Category Allotment Caps</h3>
+                                    <span id="savings-percentage" class="fine-pill">100% SECURE</span>
+                                </div>
+                                <div class="progress-bar-container" style="margin-bottom: 15px;">
+                                    <div id="savings-progress-fill" class="progress-bar-fill"></div>
+                                </div>
+                                <div id="category-caps-container" class="caps-vertical-list"></div>
+                            </div>
+
+                            <div class="glass-card">
+                                <h3>Statements History Ledger</h3>
+                                <ul id="expense-list" class="ledger-rendered-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="split-view gap-24">
+                        <div class="glass-card flex-1">
+                            <h3>🔄 Recurring Subscriptions & Fixed Standing Commitments</h3>
+                            <form id="subscription-form" class="inline-input-form" style="margin-bottom: 12px;">
+                                <input type="text" id="sub-name" placeholder="Subscription Name" required>
+                                <input type="number" id="sub-amount" placeholder="Cycle Cost" required>
+                                <button type="submit" class="btn-execute">Bind Bill</button>
+                            </form>
+                            <div style="font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px;">Fixed Commitments Liability: <span id="total-subscriptions">₹0.00</span></div>
+                            <ul id="subscription-list" class="ledger-rendered-list"></ul>
+                        </div>
+
+                        <div class="glass-card flex-1">
+                            <h3>🏦 ATM Network Interchange & Surcharge Navigator</h3>
+                            <div class="inline-input-form" style="margin-bottom: 12px;">
+                                <select id="user-bank-network-select" class="clean-select">
+                                    <option value="sbi">State Bank of India Network</option>
+                                    <option value="hdfc">HDFC Corporate Pool</option>
+                                    <option value="icici">ICICI Bank Terminal Vault</option>
+                                </select>
+                                <button id="find-atm-matrix-btn" class="btn-execute">Map Free Outlets</button>
+                            </div>
+                            <div id="atm-routing-results-panel" style="display:none;"><ul id="atm-fees-list-rendered" class="ledger-rendered-list"></ul></div>
+                        </div>
+                    </div>
+
+                    <div class="split-view gap-24">
+                        <div class="glass-card flex-1">
+                            <h3>📈 Smart Compounding Liquidity Sweep Optimizer</h3>
+                            <div class="inline-input-form" style="margin-bottom: 12px;">
+                                <input type="number" id="checking-threshold-input" placeholder="Checking Base Buffer Floor">
+                                <button id="calculate-sweep-btn" class="btn-execute">Run Sweep Matrix</button>
+                            </div>
+                            <div id="sweep-results-panel" style="display:none;"><p id="sweep-allocation-summary-text" style="font-size: 13px; margin:0; line-height:1.5;"></p></div>
+                        </div>
+
+                        <div class="glass-card flex-1">
+                            <h3>📊 Regional Yearly Progressive Tax Bracket Planner</h3>
+                            <div class="inline-input-form" style="margin-bottom: 12px;">
+                                <select id="tax-region" class="clean-select">
+                                    <option value="IN">India (New Regime)</option>
+                                    <option value="US">United States (Single Filer)</option>
+                                </select>
+                                <input type="number" id="yearly-income-input" placeholder="Estimated Annual Income Pool">
+                                <button id="calculate-tax-btn" class="btn-execute">Compute Tax Liability</button>
+                            </div>
+                            <div id="tax-results-panel" style="display:none;"><p id="tax-summary-text" style="font-size: 13px; margin:0; line-height:1.5;"></p></div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
