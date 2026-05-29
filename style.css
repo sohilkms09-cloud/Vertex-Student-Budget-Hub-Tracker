@@ -160,3 +160,35 @@ li { background: rgba(15, 23, 42, 0.3); border: 1px solid var(--glass-border); p
 
 .delete-btn { background: transparent; color: var(--danger); border: none; padding: 0; margin-left: 10px; cursor: pointer; width: auto; display: inline; }
 .delete-btn:hover { opacity: 0.7; }
+/* =========================================================================
+   VERTEX HOOD LOGOUT USER INTERFACE DEFINITIONS
+   ========================================================================= */
+.auth-hud-right-corner {
+    display: flex;
+    align-items: center;
+}
+
+.logout-btn-premium {
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    color: var(--danger) !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    width: auto !important;
+    transition: all 0.2s ease !important;
+}
+
+.logout-btn-premium:hover {
+    background: var(--danger) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25) !important;
+    transform: translateY(-1px);
+}
+
+/* RESIZING MATRIX: FIXES CHART CANVAS SCALING ERROR DEVIATIONS */
+.chart-wrapper { position: relative; height: 280px !important; width: 100% !important; max-width: 100%; }
+.chart-container-large { position: relative; height: 260px !important; width: 100% !important; max-width: 100%; }
+canvas { display: block; width: 100% !important; height: 100% !important; }
