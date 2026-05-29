@@ -4,7 +4,6 @@
 function checkNavigationAccessRights() {
     const isVerified = sessionStorage.getItem('userAuthenticated');
     
-    // Fallback security checkpoint: route back to hosted entry root parameters if missing
     if (isVerified !== 'true') {
         window.location.replace('index.html');
         return false;
@@ -13,24 +12,21 @@ function checkNavigationAccessRights() {
 }
 
 // =========================================================================
-// 🚪 GLOBAL SEPARATION EXIT TRIGGER ENGINE PIPELINE
+// 🚪 GLOBAL SEPARATION EXIT TRIGGER ENGINE PIPELINE (DOM-INDEPENDENT)
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById('google-logout-trigger-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            // Flush verified profile parameters from active tab memory buffers
             sessionStorage.removeItem('userAuthenticated');
             sessionStorage.removeItem('userEmail');
             sessionStorage.removeItem('userDisplayName');
-            
-            // Sever session tracking and route back to login platform portal root
             window.location.replace('index.html');
         });
     }
 });
 
-// Fire system initialization scripts only if security checks pass
+// Run application layers only if active authenticated token session passes
 if (checkNavigationAccessRights()) {
 
     let budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
@@ -46,7 +42,7 @@ if (checkNavigationAccessRights()) {
     let currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
     let studentMode = true; 
 
-    // Core Element Selectors mapping fields
+    // Layout Nodes Selectors 
     const currencySelect = document.getElementById('currency-select');
     const studentToggle = document.getElementById('student-mode-toggle');
     const budgetInput = document.getElementById('monthly-budget-input');
@@ -66,7 +62,7 @@ if (checkNavigationAccessRights()) {
     const heatmapCalendar = document.getElementById('heatmap-calendar');
     const searchInput = document.getElementById('search-input');
 
-    // UI Feedback Elements
+    // UI Feedback Elements Selector Parameters
     const voiceStartBtn = document.getElementById('voice-start-btn');
     const voiceStatus = document.getElementById('voice-status');
     const savingsPercentage = document.getElementById('savings-percentage');
@@ -75,7 +71,7 @@ if (checkNavigationAccessRights()) {
     const healthScoreStatus = document.getElementById('health-score-status');
     const dailyTipText = document.getElementById('daily-tip-text');
 
-    // Scan, alerts, and subscription indicators elements
+    // Subscription and Document Image processing parameters selectors
     const subscriptionForm = document.getElementById('subscription-form');
     const subscriptionList = document.getElementById('subscription-list');
     const totalSubscriptionsEl = document.getElementById('total-subscriptions');
@@ -89,7 +85,7 @@ if (checkNavigationAccessRights()) {
     const startCameraBtn = document.getElementById('start-camera-btn');
     const captureSnapshotBtn = document.getElementById('capture-snapshot-btn');
 
-    // Goals and habits tracking elements mapping
+    // Savings goals matrices parameters selectors
     const goalForm = document.getElementById('goal-form');
     const goalNameInput = document.getElementById('goal-name');
     const goalTargetInput = document.getElementById('goal-target');
@@ -97,7 +93,7 @@ if (checkNavigationAccessRights()) {
     const noSpendStreakValue = document.getElementById('no-spend-streak-value');
     const shoppingSpreeStatus = document.getElementById('shopping-spree-status');
 
-    // Operational input layout forms 
+    // Calendar alerts configuration form fields mapping selectors
     const reminderForm = document.getElementById('reminder-form');
     const reminderListEl = document.getElementById('reminder-list');
     const receiptLightbox = document.getElementById('receipt-lightbox');
@@ -105,7 +101,7 @@ if (checkNavigationAccessRights()) {
     const closeLightboxBtn = document.getElementById('close-lightbox-btn');
     const expenseAttachmentFile = document.getElementById('expense-attachment-file');
 
-    // Roommate configuration arrays mapping fields
+    // Roommate allocation configurations parameters fields selectors
     const splitBillCheckbox = document.getElementById('split-bill-checkbox');
     const roommateCountDrawer = document.getElementById('roommate-count-drawer');
     const roommateTotalCount = document.getElementById('roommate-total-count');
@@ -116,6 +112,7 @@ if (checkNavigationAccessRights()) {
     const academicFeesListEl = document.getElementById('academic-fees-list');
     const academicFeesTotalSum = document.getElementById('academic-fees-total-sum');
     const incomeForm = document.getElementById('income-form-element');
+    const incomeHistoryListEl = document.getElementById('income-history-list');
 
     let expenseChart, trendChart;
     let activeCameraStream = null;
@@ -136,36 +133,6 @@ if (checkNavigationAccessRights()) {
         const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const clockTime = dateObject.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         return `${calendarDate} @ ${clockTime}`;
-    }
-
-    function init() {
-        if (currencySelect) currencySelect.value = currentCurrency;
-        if (studentToggle) { studentToggle.checked = true; studentToggle.disabled = true; }
-        
-        // Render authenticated user name onto panel header wrapper if present
-        const savedName = sessionStorage.getItem('userDisplayName');
-        const nameLabelEl = document.getElementById('user-display-name');
-        if (savedName && nameLabelEl) {
-            nameLabelEl.innerText = savedName.split(' ')[0] + " 🎓";
-        }
-
-        displayRandomTip();
-        setupCategoryDropdown();
-        setupInteractionFeatures();
-        updateDashboard();
-        renderExpenses();
-        renderSubscriptions();
-        renderSavingsGoals();
-        renderReminders();
-        renderAcademicFeesTimeline();
-        calculateAllowanceCountdownDays();
-        renderHeatmap();
-        
-        try { initChart(); } catch (e) { console.error(e); }
-        try { initTrendChart(); } catch (e) { console.error(e); }
-        
-        setupVoiceRecognition();
-        setupReceiptScanner();
     }
 
     function setupInteractionFeatures() {
@@ -254,7 +221,10 @@ if (checkNavigationAccessRights()) {
                 loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, day: timestampNode.getDate(), timeStamp: absoluteTimeMarker });
                 localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
                 incomeForm.reset();
-                updateDashboard(); renderExpenses(); renderHeatmap();
+                updateDashboard(); 
+                renderExpenses(); 
+                renderHeatmap();
+                renderIncomeHistoryLog();
             });
         }
     }
@@ -323,7 +293,6 @@ if (checkNavigationAccessRights()) {
 
     window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); };
 
-    // Recurring subscriptions matrix array handlers
     function renderSubscriptions() {
         if (!subscriptionList) return;
         subscriptionList.innerHTML = '';
@@ -432,15 +401,6 @@ if (checkNavigationAccessRights()) {
         });
     }
 
-    if (goalForm) {
-        goalForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!goalNameInput || !goalTargetInput) return;
-            savingsGoals.push({ id: Date.now(), name: goalNameInput.value, target: parseFloat(goalTargetInput.value) || 0 });
-            goalForm.reset(); updateDashboard();
-        });
-    }
-
     function renderSavingsGoals(dynamicRollingBudgetCap) {
         if (!goalsContainer) return;
         goalsContainer.innerHTML = '';
@@ -537,7 +497,6 @@ if (checkNavigationAccessRights()) {
         }, 2500);
     }
 
-    // Camera video configuration parameters handlers
     function stopLiveVideoHardware() {
         if (!activeCameraStream) return; activeCameraStream.getTracks().forEach(track => track.stop()); activeCameraStream = null; if (cameraStreamVideo) cameraStreamVideo.srcObject = null;
         if (cameraStreamVideo) cameraStreamVideo.style.display = 'none'; if(scannerPrompt) scannerPrompt.style.display = 'block'; startCameraBtn.innerText = "🎥 Turn On Live Camera"; if (captureSnapshotBtn) captureSnapshotBtn.disabled = true;
@@ -568,7 +527,7 @@ if (checkNavigationAccessRights()) {
             const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); const totalSubs = subscriptions.reduce((sum, item) => sum + parseFloat(item.amount), 0); const outflow = totalSpent + totalSubs;
             historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); expenses = []; loggedIncomes = []; budget = 0;
             localStorage.removeItem('loggedIncomes');
-            updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart();
+            updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog();
         });
     }
 
@@ -585,28 +544,32 @@ if (checkNavigationAccessRights()) {
     }
 
     function setupVoiceRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
-        if (!SpeechRecognition || !voiceStartBtn) return; 
-        const recognition = new SpeechRecognition();
-        
-        voiceStartBtn.addEventListener('click', () => { 
-            recognition.start(); 
-            if (voiceStatus) voiceStatus.innerText = "Listening... Speak details."; 
-        });
-        
-        recognition.onresult = function(event) {
-            const speechResult = event.results[0][0].transcript.toLowerCase(); 
-            if (voiceStatus) voiceStatus.innerText = `Heard: "${speechResult}"`; 
-            const matches = speechResult.match(/\d+/); 
-            if (!matches) return;
+        try {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+            if (!SpeechRecognition || !voiceStartBtn) return; 
+            const recognition = new SpeechRecognition();
             
-            const timestampNode = new Date();
-            const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
-            const amount = parseFloat(matches[0]) || 0;
+            voiceStartBtn.addEventListener('click', () => { 
+                recognition.start(); 
+                if (voiceStatus) voiceStatus.innerText = "Listening... Speak details."; 
+            });
+            
+            recognition.onresult = function(event) {
+                const speechResult = event.results[0][0].transcript.toLowerCase(); 
+                if (voiceStatus) voiceStatus.innerText = `Heard: "${speechResult}"`; 
+                const matches = speechResult.match(/\d+/); 
+                if (!matches) return;
+                
+                const timestampNode = new Date();
+                const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+                const amount = parseFloat(matches[0]) || 0;
 
-            expenses.push({ id: Date.now(), name: "Voice Entry Item", amount: amount, personalShare: amount, category: "Socials", day: timestampNode.getDate(), timeStamp: absoluteTimeMarker }); 
-            updateDashboard(); renderExpenses(); renderHeatmap();
-        };
+                expenses.push({ id: Date.now(), name: "Voice Entry Item", amount: amount, personalShare: amount, category: "Socials", day: timestampNode.getDate(), timeStamp: absoluteTimeMarker }); 
+                updateDashboard(); renderExpenses(); renderHeatmap();
+            };
+        } catch (e) {
+            console.warn("Microphone blocked: ", e);
+        }
     }
 
     function generateAIInsights(combinedOutflow, dynamicRollingBudgetCap) {
@@ -621,8 +584,6 @@ if (checkNavigationAccessRights()) {
         if (!heatmapCalendar) return;
         heatmapCalendar.innerHTML = ''; const dailyTotals = {}; for (let i = 1; i <= 31; i++) dailyTotals[i] = 0;
         expenses.forEach(exp => { if (exp.day) dailyTotals[exp.day] += (parseFloat(exp.personalShare) || parseFloat(exp.amount) || 0); }); 
-        
-        // STABILIZED RATIO CORRECTION: Fixed raw parsing typo token parameters to maintain stable canvas mapping 
         const maxSpentInADay = Math.max(...Object.values(dailyTotals), 1);
         
         for (let d = 1; d <= 31; d++) {
@@ -632,7 +593,7 @@ if (checkNavigationAccessRights()) {
         }
     }
 
-    if (clearAllBtn) clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs completely?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); } });
+    if (clearAllBtn) clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs completely?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); } });
     if (autoAllocateBtn) autoAllocateBtn.addEventListener('click', () => { const value = parseFloat(prompt("Enter monthly stipend money amount:")); if (value > 0) { budget = value * 0.8; updateDashboard(); } });
     if (searchInput) searchInput.addEventListener('input', () => { renderExpenses(); });
     if (currencySelect) currencySelect.addEventListener('change', () => { currentCurrency = currencySelect.value; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); });
@@ -719,24 +680,152 @@ if (checkNavigationAccessRights()) {
     }
 
     window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
-    window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); };
+    window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
 
-    function initChart() {
-        const chartEl = document.getElementById('expense-chart'); if (!chartEl) return;
-        const ctx = chartEl.getContext('2d');
-        expenseChart = new Chart(ctx, { type: 'doughnut', data: { labels: studentCategories, datasets: [{ data: studentCategories.map(() => 0), backgroundColor: ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#f8fafc' } } } } });
-        updateChartData();
+    function renderIncomeHistoryLog() {
+        if (!incomeHistoryListEl) return;
+        incomeHistoryListEl.innerHTML = '';
+
+        if (loggedIncomes.length === 0) {
+            incomeHistoryListEl.innerHTML = `<p style="color:var(--text-muted); font-size:12px; text-align:center; padding:10px;">No custom cash injections logged.</p>`;
+            return;
+        }
+
+        const sortedIncomes = [...loggedIncomes].sort((a, b) => b.id - a.id);
+
+        sortedIncomes.forEach(item => {
+            const li = document.createElement('li');
+            li.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+            li.style.background = 'rgba(16, 185, 129, 0.02)';
+            li.style.marginBottom = '6px';
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.alignItems = 'center';
+
+            li.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
+                    <span style="font-weight:600; font-size:13px; color:var(--text-main);">${item.name} <small style="color:var(--text-muted)">(${item.typeLabel})</small></span>
+                    <span style="font-size:10px; color:#06b6d4;">⏱️ ${item.timeStamp}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="color:var(--success); font-weight:700; font-size:13px;">+${currentCurrency}${item.amount.toFixed(2)}</span>
+                    <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})" style="font-size:12px; margin:0; padding:0; background:transparent; border:none; cursor:pointer;">❌</button>
+                </div>
+            `;
+            incomeHistoryListEl.appendChild(li);
+        });
     }
+
+    window.deleteIncomeFromLog = function(id) {
+        loggedIncomes = loggedIncomes.filter(item => item.id !== id);
+        localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
+        updateDashboard();
+        renderExpenses();
+        renderHeatmap();
+        renderIncomeHistoryLog();
+    };
+
+    // =========================================================================
+    // 📊 CHART SAFELY INITIALIZED VIA DELAY MATRICES
+    // =========================================================================
+    function initChart() {
+        const chartEl = document.getElementById('expense-chart'); 
+        if (!chartEl) return; 
+        const ctx = chartEl.getContext('2d');
+        
+        // This timeout lets the browser frame scale components before calculation runs
+        setTimeout(() => {
+            expenseChart = new Chart(ctx, { 
+                type: 'doughnut', 
+                data: { 
+                    labels: studentCategories, 
+                    datasets: [{ 
+                        data: studentCategories.map(() => 0), 
+                        backgroundColor: ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'], 
+                        borderWidth: 0 
+                    }] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { labels: { color: '#f8fafc' } } } 
+                } 
+            });
+            updateChartData();
+        }, 60); 
+    }
+
     function updateChartData() {
         if (!expenseChart) return;
-        expenseChart.data.labels = studentCategories; expenseChart.data.datasets[0].data = studentCategories.map(cat => expenses.filter(item => item.category === cat).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0)); expenseChart.update();
+        expenseChart.data.labels = studentCategories; 
+        expenseChart.data.datasets[0].data = studentCategories.map(cat => 
+            expenses.filter(item => item.category === cat).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0)
+        ); 
+        expenseChart.update();
     }
+
     function initTrendChart() {
-        const trendEl = document.getElementById('history-trend-chart'); if (!trendEl) return;
+        const trendEl = document.getElementById('history-trend-chart'); 
+        if (!trendEl) return; 
         const ctx = trendEl.getContext('2d');
-        trendChart = new Chart(ctx, { type: 'line', data: { labels: historyLog.map(item => item.label), datasets: [{ label: 'Score', data: historyLog.map(item => item.score), borderColor: '#8b5cf6', backgroundColor: 'transparent', tension: 0.3, yAxisID: 'y' }, { label: 'Outflow', data: historyLog.map(item => item.spent), borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 5], yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, y: { type: 'linear', display: true, position: 'left', min: 0, max: 100 }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } }, plugins: { legend: { display: false } } } });
+        
+        setTimeout(() => {
+            trendChart = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: historyLog.map(item => item.label), 
+                    datasets: [
+                        { label: 'Score', data: historyLog.map(item => item.score), borderColor: '#8b5cf6', backgroundColor: 'transparent', tension: 0.3, yAxisID: 'y' }, 
+                        { label: 'Outflow', data: historyLog.map(item => item.spent), borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 5], yAxisID: 'y1' }
+                    ] 
+                }, 
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, 
+                        y: { type: 'linear', display: true, position: 'left', min: 0, max: 100 }, 
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } 
+                    }, 
+                    plugins: { legend: { display: false } } 
+                } 
+            });
+        }, 60);
     }
-    function updateTrendChart() { if (!trendChart) return; trendChart.data.labels = historyLog.map(item => item.label); trendChart.data.datasets[0].data = historyLog.map(item => parseFloat(item.score) || 0); trendChart.data.datasets[1].data = historyLog.map(item => parseFloat(item.spent) || 0); trendChart.update(); }
+
+    function updateTrendChart() { 
+        if (!trendChart) return; 
+        trendChart.data.labels = historyLog.map(item => item.label); 
+        trendChart.data.datasets[0].data = historyLog.map(item => parseFloat(item.score) || 0); 
+        trendChart.data.datasets[1].data = historyLog.map(item => parseFloat(item.spent) || 0); 
+        trendChart.update(); 
+    }
+
+    function init() {
+        const savedName = sessionStorage.getItem('userDisplayName');
+        const nameLabelEl = document.getElementById('user-display-name');
+        if (savedName && nameLabelEl) {
+            nameLabelEl.innerText = savedName.split(' ')[0] + " 🎓";
+        }
+
+        displayRandomTip();
+        setupCategoryDropdown();
+        setupInteractionFeatures();
+        updateDashboard();
+        renderExpenses();
+        renderSubscriptions();
+        renderSavingsGoals();
+        renderReminders();
+        renderAcademicFeesTimeline();
+        calculateAllowanceCountdownDays();
+        renderHeatmap();
+        renderIncomeHistoryLog(); 
+        
+        initChart();
+        initTrendChart();
+        setupVoiceRecognition();
+        setupReceiptScanner();
+    }
 
     init();
 }

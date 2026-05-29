@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="script.js" defer></script>
 </head>
 <body class="dark-theme">
 
@@ -15,6 +17,14 @@
             <div class="mode-toggle">
                 <label><input type="checkbox" id="student-mode-toggle" checked disabled> 🎓 Student Mode Core</label>
             </div>
+            
+            <div class="auth-hud-right-corner">
+                <div id="user-profile-identity-wrapper" style="display: flex; align-items: center; gap: 12px;">
+                    <span id="user-display-name" style="font-size: 13px; font-weight: 700; color: var(--text-main);">✨ Active Student</span>
+                    <button id="google-logout-trigger-btn" class="logout-btn-premium">⎋ Logout</button>
+                </div>
+            </div>
+
             <div class="currency-box">
                 <select id="currency-select">
                     <option value="₹">Rupees (₹)</option>
@@ -225,7 +235,8 @@
             <div class="glass-card flex-1" style="border-top: 4px solid var(--success);">
                 <h2>💰 Log Cash Influx / Earnings</h2>
                 <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Add cash injections directly into your total available monthly pool assets.</p>
-                <form id="income-form-element" class="expense-vertical-form" style="margin-top: 15px;">
+                
+                <form id="income-form-element" class="expense-vertical-form" style="margin-top: 15px; margin-bottom: 20px;">
                     <input type="text" id="income-name" placeholder="Source description (e.g., Part-time gig)" required>
                     <input type="number" id="income-amount" placeholder="Received Amount" required>
                     <select id="income-source-type" class="select-dropdown-box">
@@ -236,6 +247,11 @@
                     </select>
                     <button type="submit" style="background: var(--success);">Inject Cash Into Budget</button>
                 </form>
+
+                <div class="income-history-wrapper" style="margin-top: 20px; border-top: 1px dashed var(--glass-border); padding-top: 15px;">
+                    <h3 style="font-size: 13px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">💵 Cash Injection Log</h3>
+                    <ul id="income-history-list" class="ledger-scroller-view" style="max-height: 150px;"></ul>
+                </div>
             </div>
         </div>
 
@@ -309,6 +325,5 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
 </body>
 </html>
