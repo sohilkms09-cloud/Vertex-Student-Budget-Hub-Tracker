@@ -227,6 +227,25 @@ if (checkNavigationAccessRights()) {
                 renderIncomeHistoryLog();
             });
         }
+
+        // =========================================================================
+        // 🎯 FIXED: TRACKING AND CAPTURING TARGET SAVINGS FORM INTERCEPTOR
+        // =========================================================================
+        if (goalForm) {
+            goalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!goalNameInput || !goalTargetInput) return;
+                
+                savingsGoals.push({ 
+                    id: Date.now(), 
+                    name: goalNameInput.value, 
+                    target: parseFloat(goalTargetInput.value) || 0 
+                });
+                
+                goalForm.reset(); 
+                updateDashboard();
+            });
+        }
     }
 
     window.openReceiptLightbox = function(imageUrl) {
@@ -733,7 +752,6 @@ if (checkNavigationAccessRights()) {
         if (!chartEl) return; 
         const ctx = chartEl.getContext('2d');
         
-        // This timeout lets the browser frame scale components before calculation runs
         setTimeout(() => {
             expenseChart = new Chart(ctx, { 
                 type: 'doughnut', 
