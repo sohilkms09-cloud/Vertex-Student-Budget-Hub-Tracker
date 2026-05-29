@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertex Student Budget Hub Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+
+    <div class="glass-container">
+        <div class="toolbar">
+            <div class="mode-toggle">
+                <label><input type="checkbox" id="student-mode-toggle" checked disabled> 🎓 Student Mode Core</label>
+            </div>
+            <div class="currency-box">
+                <select id="currency-select">
+                    <option value="₹">Rupees (₹)</option>
+                    <option value="$">Dollars ($)</option>
+                </select>
+            </div>
+        </div>
+
+        <h1>✨ Vertex Student Budget Hub Tracker</h1>
+
+        <div class="score-card-wrapper">
+            <div class="score-badge">
+                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700;">Financial Health Score</span>
+                <div id="health-score-value">100</div>
+                <span id="health-score-status" style="font-weight: 700; color: var(--success);">Excellent</span>
+            </div>
+        </div>
+
+        <div class="glass-card allowance-countdown-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2>⏳ Pocket Money Arrival Countdown</h2>
+                    <p style="color: var(--text-muted); font-size: 13px; margin: 4px 0 0 0;">Days remaining until your next allowance drop cycle.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="countdown-days-badge"><span id="allowance-days-counter">15</span> Days Left</div>
+                    <button id="set-allowance-day-btn" class="mini-action-btn">⚙️ Change Cycle Date</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card font-italic-tip">
+            <p id="daily-tip-text">💡 Syncing campus financial intelligence parameters...</p>
+        </div>
+
+        <div class="glass-card">
+            <h2>📸 AI Live Camera & Receipt Scanner</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 15px;">
+                Activate your device's live video camera stream, or upload a local image file to extract bill item structures.
+            </p>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button id="start-camera-btn" style="background: var(--accent); width: auto;">🎥 Turn On Live Camera</button>
+                <button id="capture-snapshot-btn" style="background: var(--success); width: auto;" disabled>⚡ Snap & Scan Bill</button>
+            </div>
+
+            <div class="scanner-dropzone" id="scanner-area">
+                <div id="scanner-prompt">
+                    <span style="font-size: 32px;">📁</span>
+                    <p style="margin: 8px 0; font-size: 14px; font-weight: 500;">Click / Drag Image File OR Use Live Camera Above</p>
+                    <input type="file" id="scanner-file-input" accept="image/*" style="display: none;">
+                </div>
+                <video id="camera-stream" autoplay playsinline style="display: none; width: 100%; max-height: 350px; object-fit: cover; border-radius: 8px;"></video>
+                <div id="scanner-laser" class="laser-beam"></div>
+            </div>
+            <p id="scanner-log-status" style="font-size: 13px; color: var(--success); margin-top: 10px; font-style: italic; text-align: center; display: none;"></p>
+        </div>
+
+        <div class="ai-insights-panel">
+            <h3>🤖 Live AI Spending Insights</h3>
+            <p id="ai-insight-text">Add some campus entries to generate smart spending predictions...</p>
+        </div>
+        
+        <div class="glass-card voice-panel-border">
+            <h2>🎙️ Voice Expense Logger</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">
+                Click the button and say something like: <strong>"Spent 250 on lunch"</strong>
+            </p>
+            <button id="voice-start-btn" style="background: var(--success); width: auto; padding: 12px 24px; border-radius: 50px;">
+                🎤 Start Listening
+            </button>
+            <p id="voice-status" style="font-size: 13px; color: var(--text-muted); margin-top: 10px; font-style: italic;">Microphone ready...</p>
+        </div>
+
+        <div class="glass-card">
+            <h2>Set Initial Monthly Allowance Baseline</h2>
+            <div class="input-group">
+                <input type="number" id="monthly-budget-input" placeholder="Enter base monthly allowance (e.g. 10000)">
+                <button id="set-budget-btn">Lock Budget</button>
+            </div>
+            <button id="auto-allocate-btn" style="background: rgba(255,255,255,0.05); border: 1px dashed var(--accent); color: #a5b4fc; margin-top: 10px; font-size: 13px; padding: 8px; width: 100%;">
+                💡 Don't know your limit? Click to Auto-Allocate via 50/30/20 rule based on earnings
+            </button>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="metric-card status-good" id="budget-card">
+                <h3>Total Budget (Base + Income)</h3>
+                <p id="total-budget">₹0.00</p>
+            </div>
+            <div class="metric-card">
+                <h3>Total Spent</h3>
+                <p id="total-expenses">₹0.00</p>
+            </div>
+            <div class="metric-card highlight-balance-badge">
+                <h3>Leftover Balance Buffer</h3>
+                <p id="balance-left">₹0.00</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+            <div class="metric-sub-card status-warning-left">
+                <span class="sub-card-label">👥 Roommates Owe You</span>
+                <h4 id="roommates-owe-total">₹0.00</h4>
+            </div>
+            <div class="metric-sub-card status-danger-left">
+                <span class="sub-card-label">💸 Total Academic Fee Overhead</span>
+                <h4 id="academic-fees-total-sum">₹0.00</h4>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <h2 style="margin: 0; font-size: 16px;">🎯 Budget Reserve Safety Meter</h2>
+                <span id="savings-percentage" style="font-weight: bold; color: var(--success);">100% Left</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="savings-progress-fill" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <div class="split-view">
+            <div class="glass-card flex-1">
+                <h2>🎯 Long-Term Savings Target</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Define structural goal milestones (e.g., Laptop, Emergency Fund).</p>
+                <form id="goal-form" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="goal-name" placeholder="Goal Name (e.g., New Laptop)" required>
+                    <input type="number" id="goal-target" placeholder="Target Amount Needed" required>
+                    <button type="submit" style="background: var(--accent);">Create Target Milestone</button>
+                </form>
+                <div id="goals-container" style="display: flex; flex-direction: column; gap: 12px;"></div>
+            </div>
+
+            <div class="glass-card flex-1">
+                <h2>⚡ AI Habits & Behavior Tracker</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Analysis of your active month consistency milestones.</p>
+                <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                        <div>
+                            <span style="font-size: 13px; color: var(--text-muted);">No-Spend Days Clear Streak</span>
+                            <h4 id="no-spend-streak-value" style="margin: 5px 0 0 0; font-size: 20px; color: var(--success);">0 Days</h4>
+                        </div>
+                        <span style="font-size: 28px;">🔥</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);">
+                        <div>
+                            <span style="font-size: 13px; color: var(--text-muted);">Shopping Spree Discipline</span>
+                            <h4 id="shopping-spree-status" style="margin: 5px 0 0 0; font-size: 15px; font-weight: 600;">Safe Balance</h4>
+                        </div>
+                        <span style="font-size: 28px;">🛡️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h2>🏫 Academic Semester & Exam Fees Milestone Timeline</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Track large periodic education bills (Tuition, Exam registrations, Lab fees).</p>
+            <form id="academic-fee-form" class="input-group" style="margin-top: 15px; margin-bottom: 15px;">
+                <input type="text" id="fee-name" placeholder="Fee Identifier (e.g. Sem 3 Tuition)" required style="flex: 2;">
+                <input type="number" id="fee-amount" placeholder="Amount Due" required style="flex: 1;">
+                <input type="date" id="fee-date" required style="flex: 1.5;">
+                <button type="submit" style="background: var(--accent); flex: 1;">Add Fee Milestone</button>
+            </form>
+            <ul id="academic-fees-list" class="ledger-scroller-view"></ul>
+        </div>
+
+        <div class="glass-card">
+            <h2>🛡️ Category Spending Cap Warning Dashboard</h2>
+            <div id="category-caps-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;"></div>
+        </div>
+
+        <div class="glass-card">
+            <h2>📅 Monthly Spending Heatmap</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 15px;">
+                Visual tracker: Darker purple blocks represent higher spending days.
+            </p>
+            <div class="heatmap-grid" id="heatmap-calendar"></div>
+        </div>
+
+        <div class="split-view">
+            <div class="glass-card flex-1">
+                <h2>Track Expense Manually</h2>
+                <form id="expense-form-element" class="expense-vertical-form">
+                    <input type="text" id="expense-name" placeholder="Item description (e.g., Books)" required>
+                    <input type="number" id="expense-amount" placeholder="Cost Amount" required>
+                    <select id="expense-category" class="select-dropdown-box"></select>
+                    
+                    <div class="splitter-interactive-row">
+                        <label class="custom-checkbox-wrapper">
+                            <input type="checkbox" id="split-bill-checkbox">
+                            <span>👥 Split bill with roommates?</span>
+                        </label>
+                        <div id="roommate-count-drawer" style="display: none; margin-top: 10px;">
+                            <input type="number" id="roommate-total-count" placeholder="Roommates count (excluding you)" min="1" value="1">
+                        </div>
+                    </div>
+
+                    <div class="file-attachment-row">
+                        <label class="file-attachment-label">📁 Attach Receipt / Bill Image (Optional):</label>
+                        <input type="file" id="expense-attachment-file" accept="image/*">
+                    </div>
+                    
+                    <button type="submit">Commit Purchase Record</button>
+                </form>
+            </div>
+
+            <div class="glass-card flex-1" style="border-top: 4px solid var(--success);">
+                <h2>💰 Log Cash Influx / Earnings</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Add cash injections directly into your total available monthly pool assets.</p>
+                <form id="income-form-element" class="expense-vertical-form" style="margin-top: 15px;">
+                    <input type="text" id="income-name" placeholder="Source description (e.g., Part-time gig)" required>
+                    <input type="number" id="income-amount" placeholder="Received Amount" required>
+                    <select id="income-source-type" class="select-dropdown-box">
+                        <option value="Part-Time Job">💼 Part-Time Job Earnings</option>
+                        <option value="Friend Debt Return">👥 Friend Returned Money</option>
+                        <option value="Stipend/Scholarship">🎓 Scholarship / Stipend Bonus</option>
+                        <option value="Other Inflow">💵 Miscellaneous Cash Influx</option>
+                    </select>
+                    <button type="submit" style="background: var(--success);">Inject Cash Into Budget</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="split-view">
+            <div class="glass-card flex-1">
+                <h2>🔔 Upcoming Bill & Recharge Reminders</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px;">Track recharges, sub deadlines, or cafeteria dues.</p>
+                <form id="reminder-form" class="expense-vertical-form" style="margin-top: 10px; margin-bottom: 15px;">
+                    <input type="text" id="reminder-name" placeholder="Reminder name (e.g., Mobile Recharge)" required>
+                    <input type="number" id="reminder-amount" placeholder="Due Amount" required>
+                    <input type="date" id="reminder-date" required>
+                    <button type="submit" style="background: var(--accent);">Set Calendar Reminder</button>
+                </form>
+                <ul id="reminder-list" class="ledger-scroller-view"></ul>
+            </div>
+
+            <div class="glass-card flex-1">
+                <h2>🔄 Fixed Monthly Subscriptions Tracker</h2>
+                <form id="subscription-form" class="expense-vertical-form" style="margin-top: 10px; margin-bottom: 15px;">
+                    <input type="text" id="sub-name" placeholder="Subscription Name (e.g. Spotify Student)" required>
+                    <input type="number" id="sub-amount" placeholder="Monthly Cost" required>
+                    <button type="submit" style="background: var(--accent);">Add Subscription</button>
+                </form>
+                <div style="font-size: 14px; margin-bottom: 10px; font-weight: bold; color: #a5b4fc;">
+                    Total Monthly Commitments: <span id="total-subscriptions">₹0.00</span>
+                </div>
+                <ul id="subscription-list" class="ledger-scroller-view"></ul>
+            </div>
+        </div>
+
+        <div class="split-view">
+            <div class="glass-card flex-1">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">Statements Ledger History</h2>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="search-input" placeholder="🔍 Search..." style="padding: 6px 10px; font-size: 13px; max-width:140px;">
+                        <button id="export-csv-btn" style="padding: 8px 12px; font-size: 13px; background: var(--success); width: auto;">📥 Export CSV</button>
+                        <button id="archive-month-btn" style="padding: 8px 12px; font-size: 13px; background: var(--accent); width: auto;">📦 Archive</button>
+                        <button id="clear-all-btn" style="padding: 8px 12px; font-size: 13px; background: var(--danger); width: auto;">🔄 Reset All</button>
+                    </div>
+                </div>
+                <ul id="expense-list" class="ledger-scroller-view"></ul>
+            </div>
+            <div class="glass-card flex-1">
+                <h2>Category Allotments Distribution</h2>
+                <div class="chart-wrapper">
+                    <canvas id="expense-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h2>📈 Multi-Month Financial Pacing Trends</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 15px;">
+                Displays metrics recorded when you archived previous spending cycles.
+            </p>
+            <div class="chart-container-large">
+                <canvas id="history-trend-chart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="receipt-lightbox" class="lightbox-overlay" style="display: none;">
+        <div class="lightbox-content-box">
+            <span id="close-lightbox-btn" class="lightbox-close-cross">×</span>
+            <h3>📄 Attached Bill Document Preview</h3>
+            <div class="lightbox-image-viewport">
+                <img id="lightbox-render-target" src="" alt="Attached document view">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

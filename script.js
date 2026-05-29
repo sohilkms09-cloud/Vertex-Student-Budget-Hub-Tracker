@@ -1,32 +1,15 @@
-// FOR SECURITY AND PRIVACY, CONFIGURATION OF YOUR PERMANENT CLOUD DATABASE IS SUPPORTED BELOW:
-// Go to console.firebase.google.com -> Create Project -> Add Web App to copy your free keys here
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY_HERE_PASTE",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_ID",
-    appId: "YOUR_APP_ID"
-};
-
-// Initialize Firebase Core Safely if Keys are configured
-let useCloudDatabase = false;
-let db, auth;
-
-if (firebaseConfig.apiKey !== "YOUR_API_KEY_HERE_PASTE") {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    auth = firebase.auth();
-    useCloudDatabase = true;
-}
-
-// Active profile properties state configurations arrays maps variables
 let budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
 let expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
 let subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
 let historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
+let savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
+let remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
+let academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
+let targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
+let loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
+
 let currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
-let studentMode = localStorage.getItem('studentMode') === 'true';
+let studentMode = true; 
 
 // Element Selectors
 const currencySelect = document.getElementById('currency-select');
@@ -43,7 +26,6 @@ const balanceLeftEl = document.getElementById('balance-left');
 const budgetCard = document.getElementById('budget-card');
 const expenseForm = document.getElementById('expense-form-element');
 const expenseCategorySelect = document.getElementById('expense-category');
-const expenseDaySelect = document.getElementById('expense-day');
 const expenseList = document.getElementById('expense-list');
 const aiInsightText = document.getElementById('ai-insight-text');
 const heatmapCalendar = document.getElementById('heatmap-calendar');
@@ -60,349 +42,247 @@ const dailyTipText = document.getElementById('daily-tip-text');
 
 // Subscription Selectors
 const subscriptionForm = document.getElementById('subscription-form');
-const subNameInput = document.getElementById('sub-name');
-const subAmountInput = document.getElementById('sub-amount');
 const subscriptionList = document.getElementById('subscription-list');
 const totalSubscriptionsEl = document.getElementById('total-subscriptions');
-
-// Scanner UI Hooks
 const scannerArea = document.getElementById('scanner-area');
+const scannerPrompt = document.getElementById('scanner-prompt');
 const scannerFileInput = document.getElementById('scanner-file-input');
 const scannerLaser = document.getElementById('scanner-laser');
 const scannerLogStatus = document.getElementById('scanner-log-status');
 const categoryCapsContainer = document.getElementById('category-caps-container');
+const cameraStreamVideo = document.getElementById('camera-stream');
+const startCameraBtn = document.getElementById('start-camera-btn');
+const captureSnapshotBtn = document.getElementById('capture-snapshot-btn');
 
-// Tax Estimator Selectors
-const taxRegionSelect = document.getElementById('tax-region');
-const yearlyIncomeInput = document.getElementById('yearly-income-input');
-const calculateTaxBtn = document.getElementById('calculate-tax-btn');
-const taxResultsPanel = document.getElementById('tax-results-panel');
-const taxSummaryText = document.getElementById('tax-summary-text');
+// Milestone selectors
+const goalForm = document.getElementById('goal-form');
+const goalNameInput = document.getElementById('goal-name');
+const goalTargetInput = document.getElementById('goal-target');
+const goalsContainer = document.getElementById('goals-container');
+const noSpendStreakValue = document.getElementById('no-spend-streak-value');
+const shoppingSpreeStatus = document.getElementById('shopping-spree-status');
 
-// Cash Matrix Selectors
-const userBankNetworkSelect = document.getElementById('user-bank-network-select');
-const findAtmMatrixBtn = document.getElementById('find-atm-matrix-btn');
-const atmRoutingResultsPanel = document.getElementById('atm-routing-results-panel');
-const atmFeesListRendered = document.getElementById('atm-fees-list-rendered');
-const checkingThresholdInput = document.getElementById('checking-threshold-input');
-const calculateSweepBtn = document.getElementById('calculate-sweep-btn');
-const sweepResultsPanel = document.getElementById('sweep-results-panel');
-const sweepAllocationSummaryText = document.getElementById('sweep-allocation-summary-text');
+// Core Components Selectors
+const reminderForm = document.getElementById('reminder-form');
+const reminderListEl = document.getElementById('reminder-list');
+const receiptLightbox = document.getElementById('receipt-lightbox');
+const lightboxRenderTarget = document.getElementById('lightbox-render-target');
+const closeLightboxBtn = document.getElementById('close-lightbox-btn');
+const expenseAttachmentFile = document.getElementById('expense-attachment-file');
 
-// AUTH AND LAYOUT OVERLAY INTERFACE ELEMENT SELECTORS
-const authScreen = document.getElementById('auth-screen');
-const mainDashboardWrapper = document.getElementById('main-dashboard-wrapper');
-const emailInput = document.getElementById('auth-email-input');
-const passwordInput = document.getElementById('auth-password-input');
-const loginBtn = document.getElementById('login-btn');
-const registerBtn = document.getElementById('register-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const userDisplayStatus = document.getElementById('user-display-status');
+// Input Bindings Selectors
+const splitBillCheckbox = document.getElementById('split-bill-checkbox');
+const roommateCountDrawer = document.getElementById('roommate-count-drawer');
+const roommateTotalCount = document.getElementById('roommate-total-count');
+const roommatesOweTotal = document.getElementById('roommates-owe-total');
+const allowanceDaysCounter = document.getElementById('allowance-days-counter');
+const setAllowanceDayBtn = document.getElementById('set-allowance-day-btn');
+const academicFeeForm = document.getElementById('academic-fee-form');
+const academicFeesListEl = document.getElementById('academic-fees-list');
+const academicFeesTotalSum = document.getElementById('academic-fees-total-sum');
+const incomeForm = document.getElementById('income-form-element');
 
-let expenseChart;
-let trendChart;
+let expenseChart, trendChart;
 let activeCameraStream = null;
 
-const standardCategories = ['Food', 'Rent', 'Entertainment', 'Shopping', 'Other'];
 const studentCategories = ['Hostel/Rent', 'Mess & Food', 'Books & Exams', 'Travel', 'Socials'];
 
 const financialTips = [
-    "💡 Tip: Track your micro-transactions. Small coffees and daily snacks can quietly drain your balance.",
-    "💡 Tip: The 24-hour rule: Wait a full day before purchasing a non-essential item to check if you truly need it.",
-    "💡 Tip: Review your monthly subscriptions regularly. Cancel items you haven't used in the past 30 days."
+    "💡 Tip: Track your campus micro-transactions. Small coffees and daily snacks can quietly drain your allowance balance.",
+    "💡 Tip: Roommate debts add up! Make sure to log splits right away so you don't end up funding shared items alone."
 ];
 
-const mockReceiptsPool = [
-    { name: "Supermarket Groceries", amount: 1420, category: "Food" },
-    { name: "Tech Hub Store Accessories", amount: 3200, category: "Shopping" },
-    { name: "Campus Book Depot Store", amount: 1100, category: "Books & Exams" }
+const mockReceiptImages = [
+    "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=500&q=80",
+    "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
 ];
+
+function captureChronologicalTimestamp(dateObject) {
+    const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const clockTime = dateObject.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return `${calendarDate} @ ${clockTime}`;
+}
 
 function init() {
-    currencySelect.value = currentCurrency;
-    studentToggle.checked = studentMode;
+    if (currencySelect) currencySelect.value = currentCurrency;
+    if (studentToggle) { studentToggle.checked = true; studentToggle.disabled = true; }
     
     displayRandomTip();
-    setupDayDropdown();
     setupCategoryDropdown();
+    setupInteractionFeatures();
     updateDashboard();
     renderExpenses();
     renderSubscriptions();
+    renderSavingsGoals();
+    renderReminders();
+    renderAcademicFeesTimeline();
+    calculateAllowanceCountdownDays();
     renderHeatmap();
-    initChart();
-    initTrendChart();
+    
+    try { initChart(); } catch (e) { console.error(e); }
+    try { initTrendChart(); } catch (e) { console.error(e); }
+    
     setupVoiceRecognition();
     setupReceiptScanner();
-    setupCashMatrixModules();
-    setupTaxPlannerModule();
-    setupGatewaysAuthentication();
 }
 
-// FEATURE: FIXED SIMULATION INTERACTION ROUTER
-function setupGatewaysAuthentication() {
-    if (!useCloudDatabase) {
-        // FIXED ACTION: Buttons now bypass overlay state blocks directly
-        loginBtn.addEventListener('click', () => { unlockDashboardInterface("Demo Sandbox Mode"); });
-        registerBtn.addEventListener('click', () => { unlockDashboardInterface("Demo Sandbox Mode"); });
-        logoutBtn.addEventListener('click', () => { location.reload(); });
-        return;
+function setupInteractionFeatures() {
+    if (closeLightboxBtn) {
+        closeLightboxBtn.addEventListener('click', () => { receiptLightbox.style.display = 'none'; });
+    }
+    if (receiptLightbox) {
+        receiptLightbox.addEventListener('click', (e) => { if (e.target === receiptLightbox) receiptLightbox.style.display = 'none'; });
     }
 
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            userDisplayStatus.innerText = user.email;
-            unlockDashboardInterface();
-            pullUserDataFromCloudNode(user.uid);
-        } else {
-            lockDashboardInterface();
-        }
-    });
-
-    registerBtn.addEventListener('click', () => {
-        auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value)
-            .catch(err => alert(`Registration Error: ${err.message}`));
-    });
-
-    loginBtn.addEventListener('click', () => {
-        auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value)
-            .catch(err => alert(`Sign In Failed: ${err.message}`));
-    });
-
-    logoutBtn.addEventListener('click', () => {
-        auth.signOut().then(() => { location.reload(); });
-    });
-}
-
-function unlockDashboardInterface(label) {
-    authScreen.style.display = 'none';
-    mainDashboardWrapper.style.display = 'block';
-    if(label) userDisplayStatus.innerText = label;
-}
-
-function lockDashboardInterface() {
-    authScreen.style.display = 'flex';
-    mainDashboardWrapper.style.display = 'none';
-}
-
-function pushUserDataToCloudNode() {
-    if (!useCloudDatabase || !auth.currentUser) return;
-    db.collection('users').doc(auth.currentUser.uid).set({
-        budget, expenses, subscriptions, historyLog
-    });
-}
-
-function pullUserDataFromCloudNode(uid) {
-    db.collection('users').doc(uid).get().then(doc => {
-        if (doc.exists) {
-            const data = doc.data();
-            budget = data.budget || 0;
-            expenses = data.expenses || [];
-            subscriptions = data.subscriptions || [];
-            historyLog = data.historyLog || [];
-            updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); updateTrendChart();
-        }
-    });
-}
-
-function displayRandomTip() {
-    const randomIndex = Math.floor(Math.random() * financialTips.length);
-    dailyTipText.innerText = financialTips[randomIndex];
-}
-
-function setupDayDropdown() {
-    expenseDaySelect.innerHTML = '';
-    for (let i = 1; i <= 31; i++) {
-        const option = document.createElement('option');
-        option.value = i; option.innerText = `Day ${i}`; expenseDaySelect.appendChild(option);
-    }
-}
-
-function setupCategoryDropdown() {
-    const activeCategories = studentToggle.checked ? studentCategories : standardCategories;
-    expenseCategorySelect.innerHTML = '';
-    activeCategories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat; option.innerText = cat; expenseCategorySelect.appendChild(option);
-    });
-}
-
-function updateDashboard() {
-    const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0);
-    const totalSubs = subscriptions.reduce((sum, item) => sum + item.amount, 0);
-    const combinedOutflow = totalSpent + totalSubs;
-    const balance = budget - combinedOutflow;
-
-    totalBudgetEl.innerText = `${currentCurrency}${budget.toFixed(2)}`;
-    totalExpensesEl.innerText = `${currentCurrency}${combinedOutflow.toFixed(2)}`;
-    balanceLeftEl.innerText = `${currentCurrency}${balance.toFixed(2)}`;
-    totalSubscriptionsEl.innerText = `${currentCurrency}${totalSubs.toFixed(2)}`;
-
-    if (budget > 0) {
-        let remainingPercent = (balance / budget) * 100;
-        if (remainingPercent < 0) remainingPercent = 0;
-        savingsPercentage.innerText = `${remainingPercent.toFixed(0)}% Remaining`;
-        savingsProgressFill.style.width = `${remainingPercent}%`;
-    } else {
-        savingsPercentage.innerText = '100% Left';
-        savingsProgressFill.style.width = '100%';
-    }
-
-    localStorage.setItem('budget', budget);
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
-    localStorage.setItem('historyLog', JSON.stringify(historyLog));
-    localStorage.setItem('currency', currentCurrency);
-    localStorage.setItem('studentMode', studentToggle.checked);
-
-    pushUserDataToCloudNode();
-
-    calculateFinancialHealthScore(combinedOutflow);
-    generateAIInsights(combinedOutflow);
-    renderCategoryWarningsDashboard(totalSpent);
-    if (expenseChart) updateChartData();
-}
-
-function renderCategoryWarningsDashboard(totalSpent) {
-    categoryCapsContainer.innerHTML = '';
-    if (budget <= 0) {
-        categoryCapsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Lock a total budget parameter to display gauges.</p>`;
-        return;
-    }
-    const activeCategories = studentToggle.checked ? studentCategories : standardCategories;
-    const MathCapShares = [0.35, 0.25, 0.15, 0.15, 0.10]; 
-
-    activeCategories.forEach((cat, index) => {
-        const catSpent = expenses.filter(e => e.category === cat).reduce((s, i) => s + i.amount, 0);
-        const catCapCeiling = budget * MathCapShares[index];
-        const percentUsed = Math.min((catSpent / catCapCeiling) * 100, 100);
-
-        let progressColor = "var(--success)";
-        if (percentUsed >= 90) progressColor = "var(--danger)";
-        else if (percentUsed >= 70) progressColor = "var(--warning)";
-
-        const block = document.createElement('div');
-        block.innerHTML = `
-            <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-dark); margin-bottom:4px;">
-                <span><strong>${cat}</strong> <span style="color:var(--text-muted)">(Limit: ${currentCurrency}${catCapCeiling.toFixed(0)})</span></span>
-                <span style="font-weight:bold; color:${progressColor}">${currentCurrency}${catSpent.toFixed(0)} (${percentUsed.toFixed(0)}%)</span>
-            </div>
-            <div style="width:100%; background:rgba(0,0,0,0.05); border-radius:10px; height:6px; overflow:hidden;">
-                <div style="width:${percentUsed}%; background:${progressColor}; height:100%; transition:width 0.4s;"></div>
-            </div>
-        `;
-        categoryCapsContainer.appendChild(block);
-    });
-}
-
-function setupTaxPlannerModule() {
-    calculateTaxBtn.addEventListener('click', () => {
-        const region = taxRegionSelect.value; const income = parseFloat(yearlyIncomeInput.value);
-        if (isNaN(income) || income <= 0) { alert("Please input a valid positive annual earnings parameter."); return; }
-        let totalTax = 0; let detailedBreakdown = ""; let advice = "";
-        if (region === "IN") {
-            if (income <= 700000) { totalTax = 0; detailedBreakdown = "Eligible for Section 87A rebate. Net tax due is zero."; } 
-            else {
-                let tempIncome = income;
-                if (tempIncome > 1500000) { totalTax += (tempIncome - 1500000) * 0.30; tempIncome = 1500000; }
-                if (tempIncome > 1200000) { totalTax += (tempIncome - 1200000) * 0.20; tempIncome = 1200000; }
-                if (tempIncome > 900000)  { totalTax += (tempIncome - 900000) * 0.15;  tempIncome = 900000; }
-                if (tempIncome > 600000)  { totalTax += (tempIncome - 600000) * 0.10;  tempIncome = 600000; }
-                if (tempIncome > 300000)  { totalTax += (tempIncome - 300000) * 0.05;  tempIncome = 300000; }
-                detailedBreakdown = `Calculated across standard slab percentages. Total Estimated Liability: ₹${totalTax.toFixed(2)}`;
+    if (splitBillCheckbox) {
+        splitBillCheckbox.addEventListener('change', () => {
+            if (roommateCountDrawer) {
+                roommateCountDrawer.style.display = splitBillCheckbox.checked ? 'block' : 'none';
             }
-            advice = "💡 Strategy: Consider matching tax exemptions vehicles (like Section 80C) to safely insulate your asset yields.";
-        } else if (region === "US") {
-            let tempIncome = income;
-            if (tempIncome > 609350) { totalTax += (tempIncome - 609350) * 0.37; tempIncome = 609350; }
-            if (tempIncome > 243725) { totalTax += (tempIncome - 243725) * 0.35; tempIncome = 243725; }
-            if (tempIncome > 191950) { totalTax += (tempIncome - 191950) * 0.32; tempIncome = 191950; }
-            if (tempIncome > 100525) { totalTax += (tempIncome - 100525) * 0.24; tempIncome = 100525; }
-            if (tempIncome > 47150)  { totalTax += (tempIncome - 47150) * 0.22;  tempIncome = 47150; }
-            if (tempIncome > 11600)  { totalTax += (tempIncome - 11600) * 0.12;  tempIncome = 11600; }
-            totalTax += tempIncome * 0.10;
-            detailedBreakdown = `Calculated across US Federal Income Single brackets. Total Estimated Liability: $${totalTax.toFixed(2)}`;
-            advice = "💡 Strategy: Max out pre-tax contribution limits toward 401(k) allocations to compress gross thresholds limits.";
-        }
-        const activeSymbol = region === "IN" ? "₹" : "$";
-        taxSummaryText.innerHTML = `⚡ <strong>Tax Analysis Output:</strong><br>• Projected Gross Income: <strong>${activeSymbol}${income.toFixed(2)}</strong><br>• Estimated Structural Tax: <strong style="color:var(--danger)">${activeSymbol}${totalTax.toFixed(2)}</strong><br>• Net Take-Home: <strong>${activeSymbol}${(income - totalTax).toFixed(2)}</strong><br><p style="margin:8px 0 0 0; font-size:13px; color:var(--text-muted);">${detailedBreakdown}</p><span style="font-size:12px; display:inline-block; margin-top:6px; color:#c7d2fe;">${advice}</span>`;
-        taxResultsPanel.style.display = 'block';
-    });
-}
-
-function setupCashMatrixModules() {
-    findAtmMatrixBtn.addEventListener('click', () => {
-        const userNetwork = userBankNetworkSelect.value; atmFeesListRendered.innerHTML = '';
-        localizedAtmNetworkMap.forEach(terminal => {
-            const isMatch = terminal.key === userNetwork; const operationalFee = isMatch ? terminal.networkFee : terminal.outNetworkFee;
-            const item = document.createElement('li'); item.innerHTML = `<span>📍 <strong>${terminal.bank}</strong></span><span style="font-weight: bold; color: ${isMatch ? 'var(--success)' : '#f59e0b'}">${operationalFee === 0 ? "FREE" : `Fee: ${currentCurrency}${operationalFee}`}</span>`;
-            atmFeesListRendered.appendChild(item);
         });
-        atmRoutingResultsPanel.style.display = 'block';
-    });
+    }
 
-    calculateSweepBtn.addEventListener('click', () => {
-        const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0); const totalSubs = subscriptions.reduce((sum, item) => sum + item.amount, 0); const unspentLiquidity = budget - (totalSpent + totalSubs); const safetyThreshold = parseFloat(checkingThresholdInput.value);
-        if (isNaN(safetyThreshold) || safetyThreshold < 0) { alert("Please input a valid reserve baseline limit parameter."); return; }
-        if (unspentLiquidity <= safetyThreshold) { sweepAllocationSummaryText.innerHTML = `❌ <strong>Sweep Blocked:</strong> Your leftover liquid funds are below your safety reserve threshold.`; } 
-        else {
-            const highYieldSurplusSweep = unspentLiquidity - safetyThreshold; const estimatedYieldGains = highYieldSurplusSweep * 0.072;
-            sweepAllocationSummaryText.innerHTML = `⚡ <strong>Optimal Allocation Matrix:</strong><br>• Keep in checking: <strong>${currentCurrency}${safetyThreshold.toFixed(2)}</strong><br>• Sweep to Savings: <strong style="color:var(--success)">${currentCurrency}${highYieldSurplusSweep.toFixed(2)}</strong><br><span style="font-size:12px; display:inline-block; margin-top:6px; color:var(--text-muted);">💡 Estimated annual returns: <strong>${currentCurrency}${estimatedYieldGains.toFixed(2)}</strong></span>`;
-        }
-        sweepResultsPanel.style.display = 'block';
-    });
-}
+    if (setAllowanceDayBtn) {
+        setAllowanceDayBtn.addEventListener('click', () => {
+            const val = parseInt(prompt("Enter the day of the month your pocket money arrives (1-31):", targetAllowanceDropDay));
+            if (val >= 1 && val <= 31) {
+                targetAllowanceDropDay = val;
+                localStorage.setItem('targetAllowanceDropDay', targetAllowanceDropDay);
+                calculateAllowanceCountdownDays();
+            }
+        });
+    }
 
-function setupReceiptScanner() {
-    scannerArea.addEventListener('click', () => { scannerFileInput.click(); });
-    scannerFileInput.addEventListener('change', () => {
-        if (scannerFileInput.files.length === 0) return;
-        scannerLaser.style.display = 'block';
-        scannerLaser.style.animation = 'scanningMotion 2s infinite linear';
-        scannerLogStatus.style.display = 'block';
-        scannerLogStatus.innerText = "Scanning document structural frame fields...";
+    if (reminderForm) {
+        reminderForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameEl = document.getElementById('reminder-name');
+            const amountEl = document.getElementById('reminder-amount');
+            const dateEl = document.getElementById('reminder-date');
 
-        setTimeout(() => {
-            const randomIndex = Math.floor(Math.random() * mockReceiptsPool.length);
-            let extractedItem = mockReceiptsPool[randomIndex];
-            if (studentMode && !studentCategories.includes(extractedItem.category)) extractedItem.category = studentCategories[1];
-            const activeDay = new Date().getDate();
-            expenses.push({ id: Date.now(), name: `[Scanner] ${extractedItem.name}`, amount: extractedItem.amount, category: extractedItem.category, day: activeDay });
-            scannerLaser.style.display = 'none'; scannerLaser.style.animation = 'none';
-            scannerLogStatus.innerText = `✅ Extraction Success: Loaded ${extractedItem.name}`;
+            if (!nameEl || !amountEl || !dateEl) return;
+
+            const rawDate = dateEl.value;
+            const formattedDate = new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            remindersList.push({ 
+                id: Date.now(), 
+                name: nameEl.value, 
+                amount: parseFloat(amountEl.value) || 0, 
+                dateLabel: formattedDate 
+            });
+            reminderForm.reset(); 
+            updateDashboard(); 
+            renderReminders();
+        });
+    }
+
+    if (academicFeeForm) {
+        academicFeeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const feeNameEl = document.getElementById('fee-name');
+            const feeAmountEl = document.getElementById('fee-amount');
+            const feeDateEl = document.getElementById('fee-date');
+
+            if (!feeNameEl || !feeAmountEl || !feeDateEl) return;
+
+            const rawDate = feeDateEl.value;
+            const formattedDate = new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            
+            academicFeesList.push({ 
+                id: Date.now(), 
+                name: feeNameEl.value, 
+                amount: parseFloat(feeAmountEl.value) || 0, 
+                targetDate: formattedDate 
+            });
+            academicFeeForm.reset();
+            renderAcademicFeesTimeline();
+        });
+    }
+
+    if (incomeForm) {
+        incomeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const incName = document.getElementById('income-name').value;
+            const incAmount = parseFloat(document.getElementById('income-amount').value) || 0;
+            const incType = document.getElementById('income-source-type').value;
+            const timestampNode = new Date();
+            const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+
+            loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, day: timestampNode.getDate(), timeStamp: absoluteTimeMarker });
+            localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
+            incomeForm.reset();
             updateDashboard(); renderExpenses(); renderHeatmap();
-        }, 2200);
+        });
+    }
+}
+
+window.openReceiptLightbox = function(imageUrl) {
+    if (lightboxRenderTarget && receiptLightbox) {
+        lightboxRenderTarget.src = imageUrl; 
+        receiptLightbox.style.display = 'flex';
+    }
+};
+
+function calculateAllowanceCountdownDays() {
+    if (!allowanceDaysCounter) return;
+    const today = new Date();
+    const currentDay = today.getDate();
+    let daysRemaining = 0;
+
+    if (currentDay <= targetAllowanceDropDay) {
+        daysRemaining = targetAllowanceDropDay - currentDay;
+    } else {
+        const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        daysRemaining = (daysInCurrentMonth - currentDay) + targetAllowanceDropDay;
+    }
+    allowanceDaysCounter.innerText = daysRemaining;
+}
+
+function renderAcademicFeesTimeline() {
+    if (!academicFeesListEl) return;
+    academicFeesListEl.innerHTML = '';
+    let totalSumOverhead = 0;
+    if (academicFeesList.length === 0) {
+        academicFeesListEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:10px;">No upcoming tuition/exam fees logged.</p>`;
+        if (academicFeesTotalSum) academicFeesTotalSum.innerText = `${currentCurrency}0.00`;
+        return;
+    }
+    academicFeesList.forEach(item => {
+        totalSumOverhead += item.amount;
+        const li = document.createElement('li');
+        li.innerHTML = `<span>🎓 <strong>${item.name}</strong> <small style="color:var(--danger)">Due: ${item.targetDate}</small></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteAcademicFee(${item.id})">❌</button></span>`;
+        academicFeesListEl.appendChild(li);
     });
+    if (academicFeesTotalSum) academicFeesTotalSum.innerText = `${currentCurrency}${totalSumOverhead.toFixed(2)}`;
+    localStorage.setItem('academicFeesList', JSON.stringify(academicFeesList));
 }
 
-function getCurrentScoreValue(combinedOutflow) {
-    if (budget <= 0) return 100;
-    let score = 100 - ((combinedOutflow / budget) * 70);
-    const loggedDaysCount = new Set(expenses.map(e => e.day)).size; score += ((31 - loggedDaysCount) * 0.5);
-    return Math.max(0, Math.min(100, Math.round(score)));
+window.deleteAcademicFee = function(id) {
+    academicFeesList = academicFeesList.filter(item => item.id !== id);
+    renderAcademicFeesTimeline();
+};
+
+function renderReminders() {
+    if (!reminderListEl) return;
+    reminderListEl.innerHTML = '';
+    if (remindersList.length === 0) { 
+        reminderListEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding: 10px;">No pending alerts.</p>`; 
+        return; 
+    }
+    remindersList.forEach(item => {
+        const li = document.createElement('li');
+        li.style.borderLeft = '3px solid var(--warning)';
+        li.innerHTML = `<span>🔔 <strong>${item.name}</strong> <small>Due: ${item.dateLabel}</small></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteReminder(${item.id})">❌</button></span>`;
+        reminderListEl.appendChild(li);
+    });
+    localStorage.setItem('remindersList', JSON.stringify(remindersList));
 }
 
-function calculateFinancialHealthScore(combinedOutflow) {
-    if (budget <= 0) { healthScoreValue.innerText = "100"; healthScoreStatus.innerText = "Awaiting Budget"; return; }
-    const score = getCurrentScoreValue(combinedOutflow); healthScoreValue.innerText = score;
-    if (score >= 85) { healthScoreStatus.innerText = "Excellent ✨"; healthScoreStatus.style.color = "var(--success)"; } 
-    else if (score >= 65) { healthScoreStatus.innerText = "Good 👍"; healthScoreStatus.style.color = "#60a5fa"; } 
-    else { healthScoreStatus.innerText = "Critical Risk 🚨"; healthScoreStatus.style.color = "var(--danger)"; }
-}
-
-archiveMonthBtn.addEventListener('click', () => {
-    if (budget <= 0 && expenses.length === 0) return;
-    const monthLabel = prompt("Enter cycle label (e.g. 'Jan'):"); if (!monthLabel) return;
-    const totalSpent = expenses.reduce((sum, item) => sum + item.amount, 0); const totalSubs = subscriptions.reduce((sum, item) => sum + item.amount, 0); const outflow = totalSpent + totalSubs;
-    historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow) }); expenses = []; budget = 0;
-    updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart();
-});
-
-subscriptionForm.addEventListener('submit', (e) => {
-    e.preventDefault(); const name = subNameInput.value; const amount = parseFloat(subAmountInput.value);
-    subscriptions.push({ id: Date.now(), name, amount }); subscriptionForm.reset(); updateDashboard(); renderSubscriptions();
-});
+window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); };
 
 function renderSubscriptions() {
+    if (!subscriptionList) return;
     subscriptionList.innerHTML = '';
     subscriptions.forEach(item => {
         const li = document.createElement('li'); li.innerHTML = `<span>🔄 <strong>${item.name}</strong></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteSubscription(${item.id})">❌</button></span>`; subscriptionList.appendChild(li);
@@ -411,62 +291,411 @@ function renderSubscriptions() {
 
 window.deleteSubscription = function(id) { subscriptions = subscriptions.filter(item => item.id !== id); updateDashboard(); renderSubscriptions(); };
 
+function displayRandomTip() {
+    if (!dailyTipText) return;
+    const randomIndex = Math.floor(Math.random() * financialTips.length);
+    dailyTipText.innerText = financialTips[randomIndex];
+}
+
+function setupCategoryDropdown() {
+    if (!expenseCategorySelect) return;
+    expenseCategorySelect.innerHTML = '';
+    studentCategories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat; option.innerText = cat; expenseCategorySelect.appendChild(option);
+    });
+}
+
+function updateDashboard() {
+    const cumulativeExtraIncome = loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const dynamicRollingBudgetCap = budget + cumulativeExtraIncome;
+
+    const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); 
+    const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const combinedOutflow = totalSpent + totalSubs;
+    const balance = dynamicRollingBudgetCap - combinedOutflow;
+
+    const totalRoommatesOweYou = expenses.reduce((sum, item) => sum + ((parseFloat(item.amount) || 0) - (parseFloat(item.personalShare) || parseFloat(item.amount) || 0)), 0);
+    if (roommatesOweTotal) roommatesOweTotal.innerText = `${currentCurrency}${totalRoommatesOweYou.toFixed(2)}`;
+
+    if (totalBudgetEl) totalBudgetEl.innerText = `${currentCurrency}${dynamicRollingBudgetCap.toFixed(2)}`;
+    if (totalExpensesEl) totalExpensesEl.innerText = `${currentCurrency}${combinedOutflow.toFixed(2)}`;
+    if (balanceLeftEl) balanceLeftEl.innerText = `${currentCurrency}${balance.toFixed(2)}`;
+    if (totalSubscriptionsEl) totalSubscriptionsEl.innerText = `${currentCurrency}${totalSubs.toFixed(2)}`;
+
+    if (budgetCard) {
+        budgetCard.className = 'metric-card';
+        if (dynamicRollingBudgetCap > 0) {
+            const percentSpent = (combinedOutflow / dynamicRollingBudgetCap) * 100;
+            if (percentSpent >= 90) budgetCard.classList.add('status-danger');
+            else if (percentSpent >= 70) budgetCard.classList.add('status-warning');
+            else budgetCard.classList.add('status-good');
+        } else { budgetCard.classList.add('status-good'); }
+    }
+
+    if (dynamicRollingBudgetCap > 0) {
+        let remainingPercent = (balance / dynamicRollingBudgetCap) * 100;
+        if (remainingPercent < 0) remainingPercent = 0;
+        if (savingsPercentage) savingsPercentage.innerText = `${remainingPercent.toFixed(0)}% Remaining`;
+        if (savingsProgressFill) {
+            savingsProgressFill.style.width = `${remainingPercent}%`;
+            if (remainingPercent < 20) savingsProgressFill.style.background = 'var(--danger)';
+            else if (remainingPercent < 40) savingsProgressFill.style.background = 'var(--warning)';
+            else savingsProgressFill.style.background = 'linear-gradient(90deg, var(--success), #34d399)';
+        }
+    } else {
+        if (savingsPercentage) savingsPercentage.innerText = '100% Left';
+        if (savingsProgressFill) savingsProgressFill.style.width = '100%';
+    }
+
+    localStorage.setItem('budget', budget);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
+    localStorage.setItem('historyLog', JSON.stringify(historyLog));
+    localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
+    localStorage.setItem('currency', currentCurrency);
+
+    calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap);
+    generateAIInsights(combinedOutflow, dynamicRollingBudgetCap);
+    renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap);
+    analyzeUserHabitsStreaks();
+    renderSavingsGoals(dynamicRollingBudgetCap); 
+    if (expenseChart) updateChartData();
+}
+
+function renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap) {
+    if (!categoryCapsContainer) return;
+    categoryCapsContainer.innerHTML = '';
+    if (dynamicRollingBudgetCap <= 0) { categoryCapsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Lock a total budget parameter to display smart segment distribution gauges.</p>`; return; }
+    const MathCapShares = [0.35, 0.25, 0.15, 0.15, 0.10]; 
+
+    studentCategories.forEach((cat, index) => {
+        const catSpent = expenses.filter(e => e.category === cat).reduce((s, i) => s + (parseFloat(i.personalShare) || parseFloat(i.amount) || 0), 0);
+        const catCapCeiling = dynamicRollingBudgetCap * MathCapShares[index];
+        const percentUsed = Math.min((catSpent / catCapCeiling) * 100, 100);
+        let progressColor = percentUsed >= 90 ? "var(--danger)" : (percentUsed >= 70 ? "var(--warning)" : "var(--success)");
+
+        const block = document.createElement('div');
+        block.innerHTML = `
+            <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--text-main); margin-bottom:4px;">
+                <span><strong>${cat}</strong> <span style="color:var(--text-muted)">(Limit: ${currentCurrency}${catCapCeiling.toFixed(0)})</span></span>
+                <span style="font-weight:bold; color:${progressColor}">${currentCurrency}${catSpent.toFixed(0)} (${percentUsed.toFixed(0)}%)</span>
+            </div>
+            <div style="width:100%; background:rgba(255,255,255,0.03); border-radius:10px; height:6px; overflow:hidden;">
+                <div style="width:${percentUsed}%; background:${progressColor}; height:100%; transition:width 0.4s;"></div>
+            </div>
+        `;
+        categoryCapsContainer.appendChild(block);
+    });
+}
+
+if (goalForm) {
+    goalForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!goalNameInput || !goalTargetInput) return;
+        savingsGoals.push({ id: Date.now(), name: goalNameInput.value, target: parseFloat(goalTargetInput.value) || 0 });
+        goalForm.reset(); updateDashboard();
+    });
+}
+
+function renderSavingsGoals(dynamicRollingBudgetCap) {
+    if (!goalsContainer) return;
+    goalsContainer.innerHTML = '';
+    if (savingsGoals.length === 0) { goalsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">No long-term targets configured yet.</p>`; return; }
+
+    const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
+    const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const leftoverPool = Math.max(0, dynamicRollingBudgetCap - (totalSpent + totalSubs));
+
+    savingsGoals.forEach(goal => {
+        const proportionalFund = savingsGoals.length > 0 ? (leftoverPool / savingsGoals.length) : 0;
+        const progressPercent = Math.min((proportionalFund / goal.target) * 100, 100);
+        const block = document.createElement('div');
+        block.innerHTML = `
+            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+                <span>🎯 <strong>${goal.name}</strong></span>
+                <span style="color:var(--text-muted); font-size:11px;">${currentCurrency}${proportionalFund.toFixed(0)} / ${currentCurrency}${goal.target.toFixed(0)} <button class="delete-btn" onclick="deleteGoal(${goal.id})" style="font-size:10px; margin:0; padding:0;">❌</button></span>
+            </div>
+            <div style="width:100%; background:rgba(255,255,255,0.02); border-radius:10px; height:8px; overflow:hidden; border:1px solid var(--glass-border);">
+                <div style="width:${progressPercent}%; background:linear-gradient(90deg, var(--accent), #818cf8); height:100%; border-radius:10px; transition:width 0.4s;"></div>
+            </div>
+        `;
+        goalsContainer.appendChild(block);
+    });
+}
+
+window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); updateDashboard(); };
+
+function analyzeUserHabitsStreaks() {
+    if (!noSpendStreakValue) return;
+    const loggedDays = new Set(expenses.map(e => e.day));
+    let currentStreak = 0;
+    for (let i = 1; i <= 31; i++) {
+        if (!loggedDays.has(i)) { currentStreak++; } else { break; }
+    }
+    noSpendStreakValue.innerText = `${currentStreak} Days`;
+
+    if (!shoppingSpreeStatus) return;
+    const shoppingLogsCount = expenses.filter(e => e.category === 'Socials').length;
+    if (shoppingLogsCount >= 5) { shoppingSpreeStatus.innerText = "Spree Alert 🛍️"; shoppingSpreeStatus.style.color = "var(--danger)"; } 
+    else if (shoppingLogsCount >= 3) { shoppingSpreeStatus.innerText = "Moderate ⚠️"; shoppingSpreeStatus.style.color = "var(--warning)"; } 
+    else { shoppingSpreeStatus.innerText = "Disciplined 🛡️"; shoppingSpreeStatus.style.color = "var(--success)"; }
+}
+
+function setupReceiptScanner() {
+    if (!scannerArea) return;
+    scannerArea.addEventListener('click', (e) => {
+        if (!activeCameraStream && e.target !== startCameraBtn && e.target !== captureSnapshotBtn) { if (scannerFileInput) scannerFileInput.click(); }
+    });
+    if (scannerFileInput) {
+        scannerFileInput.addEventListener('change', () => { if (scannerFileInput.files.length === 0) return; runScannerLogic(true); });
+    }
+    if (startCameraBtn) {
+        startCameraBtn.addEventListener('click', async (e) => {
+            e.stopPropagation(); if (activeCameraStream) { stopLiveVideoHardware(); return; }
+            try {
+                const constraints = { video: { facingMode: "environment" }, audio: false };
+                activeCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                if (cameraStreamVideo) cameraStreamVideo.srcObject = activeCameraStream;
+                if (scannerPrompt) scannerPrompt.style.display = 'none';
+                if (cameraStreamVideo) cameraStreamVideo.style.display = 'block'; 
+                startCameraBtn.innerText = "🛑 Turn Off Camera"; 
+                if (captureSnapshotBtn) captureSnapshotBtn.disabled = false; 
+                if (scannerLogStatus) scannerLogStatus.style.display = 'none';
+            } catch (err) { alert("Live camera access rejected."); console.error(err); }
+        });
+    }
+    if (captureSnapshotBtn) {
+        captureSnapshotBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!activeCameraStream) return; runScannerLogic(true); stopLiveVideoHardware(); });
+    }
+}
+
+function runScannerLogic(isValidBill) {
+    if (!scannerLaser || !scannerLogStatus) return;
+    scannerLaser.style.display = 'block'; scannerLaser.style.animation = 'scanningMotion 2s infinite linear'; scannerLogStatus.style.display = 'block'; scannerLogStatus.style.color = 'var(--text-muted)'; scannerLogStatus.innerText = "🔍 OCR Scanner: Decoding structures...";
+    setTimeout(() => {
+        scannerLaser.style.display = 'none'; scannerLaser.style.animation = 'none';
+        const randomIndex = Math.floor(Math.random() * mockReceiptImages.length);
+        const timestampNode = new Date();
+        const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+
+        expenses.push({ 
+            id: Date.now(), 
+            name: `[OCR Scan] Text Books Bundle`, 
+            amount: 850, 
+            personalShare: 850,
+            category: "Books & Exams", 
+            day: timestampNode.getDate(), 
+            timeStamp: absoluteTimeMarker,
+            receiptUrl: mockReceiptImages[randomIndex] 
+        });
+        scannerLogStatus.style.color = 'var(--success)'; scannerLogStatus.innerText = `✅ Extracted Success!`;
+        updateDashboard(); renderExpenses(); renderHeatmap(); if(scannerFileInput) scannerFileInput.value = '';
+    }, 2500);
+}
+
+function stopLiveVideoHardware() {
+    if (!activeCameraStream) return; activeCameraStream.getTracks().forEach(track => track.stop()); activeCameraStream = null; if (cameraStreamVideo) cameraStreamVideo.srcObject = null;
+    if (cameraStreamVideo) cameraStreamVideo.style.display = 'none'; if(scannerPrompt) scannerPrompt.style.display = 'block'; startCameraBtn.innerText = "🎥 Turn On Live Camera"; if (captureSnapshotBtn) captureSnapshotBtn.disabled = true;
+}
+
+function getCurrentScoreValue(combinedOutflow, dynamicRollingBudgetCap) {
+    if (dynamicRollingBudgetCap <= 0) return 100;
+    let score = 100 - ((combinedOutflow / dynamicRollingBudgetCap) * 70); if (combinedOutflow > dynamicRollingBudgetCap) score = 100 - ((combinedOutflow / dynamicRollingBudgetCap) * 90);
+    const loggedDaysCount = new Set(expenses.map(e => e.day)).size; score += ((31 - loggedDaysCount) * 0.5);
+    return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap) {
+    if (!healthScoreValue || !healthScoreStatus) return;
+    if (dynamicRollingBudgetCap <= 0) { healthScoreValue.innerText = "100"; healthScoreStatus.innerText = "Awaiting Budget"; healthScoreStatus.style.color = "var(--text-muted)"; return; }
+    const score = getCurrentScoreValue(combinedOutflow, dynamicRollingBudgetCap); healthScoreValue.innerText = score;
+    if (score >= 85) { healthScoreStatus.innerText = "Excellent ✨"; healthScoreStatus.style.color = "var(--success)"; } 
+    else if (score >= 65) { healthScoreStatus.innerText = "Good 👍"; healthScoreStatus.style.color = "#60a5fa"; } 
+    else { healthScoreStatus.innerText = "Risk Alert 🚨"; healthScoreStatus.style.color = "var(--danger)"; }
+}
+
+if (archiveMonthBtn) {
+    archiveMonthBtn.addEventListener('click', () => {
+        if (budget <= 0 && expenses.length === 0) { alert("Cannot archive an empty workspace!"); return; }
+        const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
+        const cumulativeExtraIncome = loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+        const dynamicRollingBudgetCap = budget + cumulativeExtraIncome;
+        const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); const totalSubs = subscriptions.reduce((sum, item) => sum + parseFloat(item.amount), 0); const outflow = totalSpent + totalSubs;
+        historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); expenses = []; loggedIncomes = []; budget = 0;
+        localStorage.removeItem('loggedIncomes');
+        updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart();
+    });
+}
+
+if (subscriptionForm) {
+    subscriptionForm.addEventListener('submit', (e) => {
+        e.preventDefault(); 
+        const nameEl = document.getElementById('sub-name');
+        const amountEl = document.getElementById('sub-amount');
+        if (!nameEl || !amountEl) return;
+        
+        subscriptions.push({ id: Date.now(), name: nameEl.value, amount: parseFloat(amountEl.value) || 0 }); 
+        subscriptionForm.reset(); updateDashboard(); renderSubscriptions();
+    });
+}
+
 function setupVoiceRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) return; const recognition = new SpeechRecognition();
-    voiceStartBtn.addEventListener('click', () => { recognition.start(); });
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+    if (!SpeechRecognition || !voiceStartBtn) return; 
+    const recognition = new SpeechRecognition();
+    
+    voiceStartBtn.addEventListener('click', () => { 
+        recognition.start(); 
+        if (voiceStatus) voiceStatus.innerText = "Listening... Speak allocation details."; 
+    });
+    
     recognition.onresult = function(event) {
-        const speechResult = event.results[0][0].transcript.toLowerCase(); const matches = speechResult.match(/\d+/); if (!matches) return; const amount = parseFloat(matches[0]);
-        expenses.push({ id: Date.now(), name: "Voice Entry", amount, category: "Other", day: new Date().getDate() }); updateDashboard(); renderExpenses(); renderHeatmap();
+        const speechResult = event.results[0][0].transcript.toLowerCase(); 
+        if (voiceStatus) voiceStatus.innerText = `Heard: "${speechResult}"`; 
+        const matches = speechResult.match(/\d+/); 
+        if (!matches) return;
+        
+        const timestampNode = new Date();
+        const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+        const amount = parseFloat(matches[0]) || 0;
+
+        expenses.push({ 
+            id: Date.now(), 
+            name: "Voice Entry Item", 
+            amount: amount, 
+            personalShare: amount, 
+            category: "Socials", 
+            day: timestampNode.getDate(), 
+            timeStamp: absoluteTimeMarker 
+        }); 
+        updateDashboard(); renderExpenses(); renderHeatmap();
     };
 }
 
-function generateAIInsights(combinedOutflow) {
-    if (budget <= 0) { aiInsightText.innerText = "💡 Initialize a budget ceiling above to deploy AI analytics projections."; return; }
-    const percentage = (combinedOutflow / budget) * 100;
-    aiInsightText.innerText = `👍 Current expenditure profile consumes roughly ${percentage.toFixed(0)}% of parameters thresholds.`;
+function generateAIInsights(combinedOutflow, dynamicRollingBudgetCap) {
+    if (!aiInsightText) return;
+    if (dynamicRollingBudgetCap <= 0) { aiInsightText.innerText = "💡 Tip: Setup your allowance limit above to engage core predictive analytics projections."; return; }
+    const percentage = (combinedOutflow / dynamicRollingBudgetCap) * 100;
+    if (percentage > 100) { aiInsightText.innerText = `🚨 Cap Breach: Allowance thresholds exceeded by ${(percentage - 100).toFixed(0)}%!`; } 
+    else { aiInsightText.innerText = `👍 Efficient Trajectory: Current burn balances occupy roughly ${percentage.toFixed(0)}% of parameters caps.`; }
 }
 
 function renderHeatmap() {
+    if (!heatmapCalendar) return;
     heatmapCalendar.innerHTML = ''; const dailyTotals = {}; for (let i = 1; i <= 31; i++) dailyTotals[i] = 0;
-    expenses.forEach(exp => { if (exp.day) dailyTotals[exp.day] += exp.amount; }); const maxSpentInADay = Math.max(...Object.values(dailyTotals), 1);
+    expenses.forEach(exp => { if (exp.day) dailyTotals[exp.day] += (parseFloat(exp.personalShare) || parseFloat(exp.amount) || 0); }); const maxSpentInADay = Math.max(...Object.values(dailyTotals), 1);
     for (let d = 1; d <= 31; d++) {
         const dayAmount = dailyTotals[d]; const dayDiv = document.createElement('div'); dayDiv.className = 'heatmap-day'; dayDiv.innerHTML = `${d}<span>${dayAmount > 0 ? currentCurrency + dayAmount.toFixed(0) : ''}</span>`;
-        if (dayAmount > 0) { const intensity = Math.min((dayAmount / maxSpentInADay), 1); dayDiv.style.background = `rgba(79, 70, 229, ${0.1 + intensity * 0.4})`; dayDiv.style.color = '#fff'; }
+        if (dayAmount > 0) { const intensity = Math.min((dayAmount / maxSpentInADay), 1); dayDiv.style.background = `rgba(139, 92, 246, ${0.15 + intensity * 0.65})`; dayDiv.style.color = '#fff'; }
         heatmapCalendar.appendChild(dayDiv);
     }
 }
 
-searchInput.addEventListener('input', () => { renderExpenses(); });
-studentToggle.addEventListener('change', () => { setupCategoryDropdown(); updateDashboard(); if (expenseChart) { expenseChart.destroy(); initChart(); } renderHeatmap(); });
-currencySelect.addEventListener('change', () => { currentCurrency = currencySelect.value; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); updateTrendChart(); });
-setBudgetBtn.addEventListener('click', () => { const value = parseFloat(budgetInput.value); if (value > 0) { budget = value; budgetInput.value = ''; updateDashboard(); } });
-expenseForm.addEventListener('submit', (e) => {
-    e.preventDefault(); expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: parseFloat(document.getElementById('expense-amount').value), category: document.getElementById('expense-category').value, day: parseInt(document.getElementById('expense-day').value) });
-    expenseForm.reset(); updateDashboard(); renderExpenses(); renderHeatmap();
-});
+if (clearAllBtn) clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs completely?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); } });
+if (autoAllocateBtn) autoAllocateBtn.addEventListener('click', () => { const value = parseFloat(prompt("Enter monthly stipend money amount:")); if (value > 0) { budget = value * 0.8; updateDashboard(); } });
+if (searchInput) searchInput.addEventListener('input', () => { renderExpenses(); });
+if (currencySelect) currencySelect.addEventListener('change', () => { currentCurrency = currencySelect.value; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); });
+if (setBudgetBtn) setBudgetBtn.addEventListener('click', () => { if (budgetInput) { const value = parseFloat(budgetInput.value); if (value > 0) { budget = value; budgetInput.value = ''; updateDashboard(); } } });
 
-function renderExpenses() {
-    expenseList.innerHTML = ''; const query = searchInput.value.toLowerCase();
-    expenses.forEach(item => {
-        if (query && !item.name.toLowerCase().includes(query)) return;
-        const li = document.createElement('li'); li.innerHTML = `<span>Day ${item.day} - <strong>${item.name}</strong></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`; expenseList.appendChild(li);
+if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', () => {
+        if (expenses.length === 0 && loggedIncomes.length === 0) { alert("No logs found to export."); return; }
+        let csvContent = "Type,Timestamp,Description,Category,Value\n";
+        expenses.forEach(e => { csvContent += `"Expense", "${e.timeStamp || 'N/A'}", "${e.name}", "${e.category}", -${e.amount}\n`; });
+        loggedIncomes.forEach(i => { csvContent += `"Income Influx", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", +${i.amount}\n`; });
+        const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURI(csvContent);
+        const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute('href', encodedUri); downloadAnchor.setAttribute('download', 'Student_Financial_Statement.csv');
+        document.body.appendChild(downloadAnchor); downloadAnchor.click(); document.body.removeChild(downloadAnchor);
     });
 }
+
+if (expenseForm) {
+    expenseForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const timestampNode = new Date();
+        const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+
+        const totalCostInput = parseFloat(document.getElementById('expense-amount').value) || 0;
+        let dynamicPersonalShare = totalCostInput;
+
+        if (splitBillCheckbox && splitBillCheckbox.checked) {
+            const roommatesCount = parseInt(roommateTotalCount.value) || 1;
+            dynamicPersonalShare = totalCostInput / (roommatesCount + 1); 
+        }
+
+        let boundAttachmentUrl = "";
+        if (expenseAttachmentFile && expenseAttachmentFile.files.length > 0) {
+            boundAttachmentUrl = URL.createObjectURL(expenseAttachmentFile.files[0]);
+        }
+
+        expenses.push({ 
+            id: Date.now(), 
+            name: document.getElementById('expense-name').value, 
+            amount: totalCostInput, 
+            personalShare: dynamicPersonalShare, 
+            category: document.getElementById('expense-category').value, 
+            day: timestampNode.getDate(),
+            timeStamp: absoluteTimeMarker,
+            receiptUrl: boundAttachmentUrl 
+        });
+
+        expenseForm.reset();
+        if (roommateCountDrawer) roommateCountDrawer.style.display = 'none';
+        updateDashboard(); renderExpenses(); renderHeatmap();
+    });
+}
+
+function renderExpenses() {
+    if (!expenseList) return;
+    expenseList.innerHTML = ''; const query = searchInput.value.toLowerCase();
+    let globalUnifiedTimeline = [];
+
+    expenses.forEach(item => {
+        globalUnifiedTimeline.push({ id: item.id, type: 'expense', name: item.name, category: item.category, amount: item.amount, personalShare: item.personalShare, timeStamp: item.timeStamp, receiptUrl: item.receiptUrl, rawSortDate: item.id });
+    });
+    loggedIncomes.forEach(item => {
+        globalUnifiedTimeline.push({ id: item.id, type: 'income', name: item.name, category: item.typeLabel, amount: item.amount, personalShare: item.amount, timeStamp: item.timeStamp, receiptUrl: null, rawSortDate: item.id });
+    });
+
+    globalUnifiedTimeline.sort((a, b) => b.rawSortDate - a.rawSortDate);
+    if (globalUnifiedTimeline.length === 0) { expenseList.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:15px;">No transactions logged.</p>`; return; }
+
+    globalUnifiedTimeline.forEach(item => {
+        if (query && !item.name.toLowerCase().includes(query) && !item.category.toLowerCase().includes(query)) return;
+        const li = document.createElement('li'); 
+        if (item.type === 'expense') {
+            const dateBadge = `<span style="color:var(--success); font-size:11px; font-weight:600; margin-right:12px;">🗓️ ${item.timeStamp || 'Just Now'}</span>`;
+            const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View Receipt</button>` : '';
+            const splitLabelInfo = item.amount !== item.personalShare ? ` <small style="color:var(--warning)">[Split - Share: ${currentCurrency}${item.personalShare.toFixed(0)}]</small>` : '';
+            li.innerHTML = `<span>${dateBadge}<strong>${item.name}</strong> <small style="color:var(--text-muted)">(${item.category})</small>${splitLabelInfo} ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
+        } else {
+            const dateBadge = `<span style="color:#06b6d4; font-size:11px; font-weight:600; margin-right:12px;">💰 ${item.timeStamp || 'Just Now'}</span>`;
+            li.innerHTML = `<span>${dateBadge}<strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong> <small style="color:var(--text-muted)">(${item.category})</small></span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
+            li.style.borderColor = 'rgba(16, 185, 129, 0.2)'; li.style.background = 'rgba(16, 185, 129, 0.01)';
+        }
+        expenseList.appendChild(li);
+    });
+}
+
 window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
+window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); };
 
 function initChart() {
-    const ctx = document.getElementById('expense-chart').getContext('2d'); const activeLabels = studentToggle.checked ? studentCategories : standardCategories;
-    expenseChart = new Chart(ctx, { type: 'doughnut', data: { labels: activeLabels, datasets: [{ data: activeLabels.map(() => 0), backgroundColor: ['#10b981', '#4f46e5', '#f59e0b', '#ec4899', '#64748b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    const chartEl = document.getElementById('expense-chart'); if (!chartEl) return;
+    const ctx = chartEl.getContext('2d');
+    expenseChart = new Chart(ctx, { type: 'doughnut', data: { labels: studentCategories, datasets: [{ data: studentCategories.map(() => 0), backgroundColor: ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#f8fafc' } } } } });
     updateChartData();
 }
 function updateChartData() {
-    const activeLabels = studentToggle.checked ? studentCategories : standardCategories;
-    expenseChart.data.labels = activeLabels; expenseChart.data.datasets[0].data = activeLabels.map(cat => expenses.filter(item => item.category === cat).reduce((sum, item) => sum + item.amount, 0)); expenseChart.update();
+    if (!expenseChart) return;
+    expenseChart.data.labels = studentCategories; expenseChart.data.datasets[0].data = studentCategories.map(cat => expenses.filter(item => item.category === cat).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0)); expenseChart.update();
 }
 function initTrendChart() {
-    const ctx = document.getElementById('history-trend-chart').getContext('2d');
-    trendChart = new Chart(ctx, { type: 'line', data: { labels: historyLog.map(item => item.label), datasets: [{ data: historyLog.map(item => item.score), borderColor: '#4f46e5', backgroundColor: 'transparent', tension: 0.3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } } });
+    const trendEl = document.getElementById('history-trend-chart'); if (!trendEl) return;
+    const ctx = trendEl.getContext('2d');
+    trendChart = new Chart(ctx, { type: 'line', data: { labels: historyLog.map(item => item.label), datasets: [{ label: 'Score', data: historyLog.map(item => item.score), borderColor: '#8b5cf6', backgroundColor: 'transparent', tension: 0.3, yAxisID: 'y' }, { label: 'Outflow', data: historyLog.map(item => item.spent), borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 5], yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, y: { type: 'linear', display: true, position: 'left', min: 0, max: 100 }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } }, plugins: { legend: { display: false } } } });
 }
-function updateTrendChart() { if (!trendChart) return; trendChart.data.labels = historyLog.map(item => item.label); trendChart.data.datasets[0].data = historyLog.map(item => item.score); trendChart.update(); }
+function updateTrendChart() { if (!trendChart) return; trendChart.data.labels = historyLog.map(item => item.label); trendChart.data.datasets[0].data = historyLog.map(item => parseFloat(item.score) || 0); trendChart.data.datasets[1].data = historyLog.map(item => parseFloat(item.spent) || 0); trendChart.update(); }
 
 init();
