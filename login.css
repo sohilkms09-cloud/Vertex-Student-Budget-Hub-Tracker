@@ -1,6 +1,6 @@
 .login-logo {
-    width: 80px;          /* Controls how wide the logo is */
-    height: 80px;         /* Controls how tall the logo is */
+    width: 90px;          /* Controls how wide the logo is */
+    height: 90px;         /* Controls how tall the logo is */
     display: block;       /* Allows centering */
     margin: 0 auto 15px;  /* Centers it horizontally and adds space below it */
     border-radius: 50%;   /* Ensures it stays perfectly circular */
