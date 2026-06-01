@@ -129,111 +129,6 @@ if (checkNavigationAccessRights()) {
         "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
     ];
 
-    // =========================================================================
-    // 📧 EMAILJS BILL REMINDER ENGINE
-    // =========================================================================
-
-    function showEmailToast(message, type) {
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed; bottom: 30px; right: 30px; z-index: 9999;
-            padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: 600;
-            color: white; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
-            transition: all 0.3s ease;
-        `;
-        toast.innerText = message;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 400);
-        }, 4000);
-    }
-
-    window.sendBillReminderEmail = function(billName, amount, dueDate) {
-        const userEmail = sessionStorage.getItem('userEmail');
-        const userName = sessionStorage.getItem('userDisplayName') || 'Student';
-
-        if (!userEmail) {
-            showEmailToast('❌ No email found. Please log in again.', 'error');
-            return;
-        }
-
-        if (typeof emailjs === 'undefined') {
-            showEmailToast('❌ EmailJS not loaded. Check your internet.', 'error');
-            return;
-        }
-
-        showEmailToast('📤 Sending reminder email...', 'success');
-
-        const templateParams = {
-            user_name: userName.split(' ')[0],
-            user_email: userEmail,
-            bill_name: billName,
-            amount: parseFloat(amount).toFixed(2),
-            due_date: dueDate,
-            currency: currentCurrency
-        };
-
-        emailjs.send("service_3tb50ep", "template_q26de65", templateParams)
-            .then(() => {
-                showEmailToast(`✅ Reminder sent to ${userEmail}!`, 'success');
-            })
-            .catch((error) => {
-                console.error("EmailJS error:", error);
-                showEmailToast(`❌ Failed to send. Check console.`, 'error');
-            });
-    };
-
-    function checkUpcomingRemindersAndEmail() {
-        const userEmail = sessionStorage.getItem('userEmail');
-        if (!userEmail) return;
-        if (typeof emailjs === 'undefined') return;
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Check bill reminders
-        remindersList.forEach(item => {
-            try {
-                const dueDate = new Date(item.dateLabel);
-                dueDate.setHours(0, 0, 0, 0);
-                const timeDiff = dueDate - today;
-                const daysUntilDue = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                if (daysUntilDue === 1 || daysUntilDue === 0) {
-                    const alreadySentKey = `emailSent_reminder_${item.id}_${today.toDateString()}`;
-                    if (!localStorage.getItem(alreadySentKey)) {
-                        window.sendBillReminderEmail(item.name, item.amount, item.dateLabel);
-                        localStorage.setItem(alreadySentKey, 'true');
-                    }
-                }
-            } catch(e) { console.warn('Reminder date parse error:', e); }
-        });
-
-        // Check academic fees
-        academicFeesList.forEach(item => {
-            try {
-                const dueDate = new Date(item.targetDate);
-                dueDate.setHours(0, 0, 0, 0);
-                const timeDiff = dueDate - today;
-                const daysUntilDue = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-                if (daysUntilDue <= 2 && daysUntilDue >= 0) {
-                    const alreadySentKey = `emailSent_fee_${item.id}_${today.toDateString()}`;
-                    if (!localStorage.getItem(alreadySentKey)) {
-                        window.sendBillReminderEmail(`📚 ${item.name} (Academic Fee)`, item.amount, item.targetDate);
-                        localStorage.setItem(alreadySentKey, 'true');
-                    }
-                }
-            } catch(e) { console.warn('Fee date parse error:', e); }
-        });
-    }
-
-    // =========================================================================
-    // END OF EMAILJS ENGINE
-    // =========================================================================
-
     function captureChronologicalTimestamp(dateObject) {
         const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const clockTime = dateObject.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -333,6 +228,9 @@ if (checkNavigationAccessRights()) {
             });
         }
 
+        // =========================================================================
+        // 🎯 FIXED: TRACKING AND CAPTURING TARGET SAVINGS FORM INTERCEPTOR
+        // =========================================================================
         if (goalForm) {
             goalForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -406,18 +304,7 @@ if (checkNavigationAccessRights()) {
         remindersList.forEach(item => {
             const li = document.createElement('li');
             li.style.borderLeft = '3px solid var(--warning)';
-            // ✅ EMAILJS: Added "📧 Email Me" button to each reminder
-            li.innerHTML = `
-                <span>🔔 <strong>${item.name}</strong> <small>Due: ${item.dateLabel}</small></span>
-                <span style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    ${currentCurrency}${item.amount.toFixed(2)}
-                    <button onclick="sendBillReminderEmail('${item.name.replace(/'/g, "\\'")}', ${item.amount}, '${item.dateLabel}')" 
-                        style="background: linear-gradient(135deg,#8b5cf6,#6d28d9); border:none; color:white; 
-                        padding:5px 12px; border-radius:8px; font-size:11px; cursor:pointer; font-weight:600; white-space:nowrap;">
-                        📧 Email Me
-                    </button>
-                    <button class="delete-btn" onclick="deleteReminder(${item.id})">❌</button>
-                </span>`;
+            li.innerHTML = `<span>🔔 <strong>${item.name}</strong> <small>Due: ${item.dateLabel}</small></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteReminder(${item.id})">❌</button></span>`;
             reminderListEl.appendChild(li);
         });
         localStorage.setItem('remindersList', JSON.stringify(remindersList));
@@ -857,6 +744,9 @@ if (checkNavigationAccessRights()) {
         renderIncomeHistoryLog();
     };
 
+    // =========================================================================
+    // 📊 CHART SAFELY INITIALIZED VIA DELAY MATRICES
+    // =========================================================================
     function initChart() {
         const chartEl = document.getElementById('expense-chart'); 
         if (!chartEl) return; 
@@ -953,9 +843,6 @@ if (checkNavigationAccessRights()) {
         initTrendChart();
         setupVoiceRecognition();
         setupReceiptScanner();
-
-        // ✅ EMAILJS: Auto-check for upcoming bills on every login
-        checkUpcomingRemindersAndEmail();
     }
 
     init();

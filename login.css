@@ -1,9 +1,4 @@
-.logo {
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  margin-bottom: 15px;
-}
+
 *{
     margin:0;
     padding:0;
@@ -31,7 +26,7 @@ body{
     padding:40px;
     border-radius:15px;
     text-align:center;
-    width:550px;
+    width:350px;
     box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
