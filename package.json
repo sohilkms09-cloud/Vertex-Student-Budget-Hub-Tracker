@@ -1,0 +1,8 @@
+{
+  "name": "vertex-budget-hub",
+  "version": "1.0.0",
+  "dependencies": {
+    "firebase-admin": "^13.10.0",
+    "node-fetch": "^3.3.2"
+  }
+}
