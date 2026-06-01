@@ -31,15 +31,14 @@ googleBtn.addEventListener("click", () => {
     .then((result) => {
       const user = result.user;
 
-      // FIXED SECTOR: ALLOCATE ACCOUNT PARAMETERS INTO TAB CACHE TO ENGAGE THE DASHBOARD NAVIGATION GUARD
+      // Save all user details to sessionStorage
       sessionStorage.setItem('userAuthenticated', 'true');
       sessionStorage.setItem('userEmail', user.email);
       sessionStorage.setItem('userDisplayName', user.displayName);
 
-      alert("Welcome " + user.displayName);
-      console.log(user);
-      
-      // Clear routing path redirect parameter allocation
+      console.log("✅ Login success:", user.email);
+
+      // Redirect to dashboard
       window.location.href = "Dashboard.html";
     })
     .catch((error) => {
