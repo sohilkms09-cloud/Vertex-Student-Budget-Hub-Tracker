@@ -1,4 +1,15 @@
+.logo {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 20px auto;
 
+    border-radius: 50%;
+
+    box-shadow:
+        0 0 20px rgba(91, 127, 255, 0.4);
+}
 *{
     margin:0;
     padding:0;
@@ -26,7 +37,7 @@ body{
     padding:40px;
     border-radius:15px;
     text-align:center;
-    width:350px;
+    width:550px;
     box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
