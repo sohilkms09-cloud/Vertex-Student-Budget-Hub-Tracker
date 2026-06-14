@@ -1,9 +1,44 @@
 // =========================================================================
+// 🚀 DYNAMIC TAB VIEW ROUTING SWITCH ENGINE (GLOBAL TO FIX CLICK ERROR)
+// =========================================================================
+window.switchActiveTab = function(event, tabId) {
+    // 1. Hide all active content sections
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active-content');
+    });
+    
+    // 2. Remove the active styling button flags from all tabs
+    document.querySelectorAll('.tab-trigger').forEach(trigger => {
+        trigger.classList.remove('active');
+    });
+    
+    // 3. Mount active parameters to current selection targets
+    const targetContent = document.getElementById(tabId);
+    if (targetContent) {
+        targetContent.classList.add('active-content');
+    }
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+    }
+};
+
+// =========================================================================
+// 📅 DYNAMIC GRID-BASED CALENDAR ENGINE ADJUSTER
+// =========================================================================
+window.adjustCalendarMonth = function(direction) {
+    if (typeof activeCalendarDate !== 'undefined') {
+        activeCalendarDate.setMonth(activeCalendarDate.getMonth() + direction);
+        if (typeof renderReminders === 'function') {
+            renderReminders();
+        }
+    }
+};
+
+// =========================================================================
 // 🛡️ SECURITY NAVIGATION GUARD: INTERCEPT ANONYMOUS SESSIONS LIVE
 // =========================================================================
 function checkNavigationAccessRights() {
     const isVerified = sessionStorage.getItem('userAuthenticated');
-    
     if (isVerified !== 'true') {
         window.location.replace('index.html');
         return false;
@@ -12,7 +47,7 @@ function checkNavigationAccessRights() {
 }
 
 // =========================================================================
-// 🚪 GLOBAL SEPARATION EXIT TRIGGER ENGINE PIPELINE (DOM-INDEPENDENT)
+// 🚪 GLOBAL EXIT ROUTING LOGOUT PIPELINE
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById('google-logout-trigger-btn');
@@ -29,22 +64,24 @@ document.addEventListener("DOMContentLoaded", () => {
 // Run application layers only if active authenticated token session passes
 if (checkNavigationAccessRights()) {
 
-    let budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
-    let expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
-    let subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
-    let historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
-    let savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
-    let remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
-    let academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
-    let targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
-    let loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
+    var budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
+    var expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
+    var subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
+    var historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
+    var savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
+    var remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
+    var academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
+    var targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
+    var loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
 
-    let currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
-    let studentMode = true; 
+    var currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
+    var studentMode = true; 
 
-    // Layout Nodes Selectors 
+    // Internal Grid State Parameters
+    window.activeCalendarDate = new Date();
+
+    // DOM Target Field Bindings
     const currencySelect = document.getElementById('currency-select');
-    const studentToggle = document.getElementById('student-mode-toggle');
     const budgetInput = document.getElementById('monthly-budget-input');
     const setBudgetBtn = document.getElementById('set-budget-btn');
     const autoAllocateBtn = document.getElementById('auto-allocate-btn');
@@ -62,7 +99,6 @@ if (checkNavigationAccessRights()) {
     const heatmapCalendar = document.getElementById('heatmap-calendar');
     const searchInput = document.getElementById('search-input');
 
-    // UI Feedback Elements Selector Parameters
     const voiceStartBtn = document.getElementById('voice-start-btn');
     const voiceStatus = document.getElementById('voice-status');
     const savingsPercentage = document.getElementById('savings-percentage');
@@ -71,7 +107,6 @@ if (checkNavigationAccessRights()) {
     const healthScoreStatus = document.getElementById('health-score-status');
     const dailyTipText = document.getElementById('daily-tip-text');
 
-    // Subscription and Document Image processing parameters selectors
     const subscriptionForm = document.getElementById('subscription-form');
     const subscriptionList = document.getElementById('subscription-list');
     const totalSubscriptionsEl = document.getElementById('total-subscriptions');
@@ -85,7 +120,6 @@ if (checkNavigationAccessRights()) {
     const startCameraBtn = document.getElementById('start-camera-btn');
     const captureSnapshotBtn = document.getElementById('capture-snapshot-btn');
 
-    // Savings goals matrices parameters selectors
     const goalForm = document.getElementById('goal-form');
     const goalNameInput = document.getElementById('goal-name');
     const goalTargetInput = document.getElementById('goal-target');
@@ -93,15 +127,19 @@ if (checkNavigationAccessRights()) {
     const noSpendStreakValue = document.getElementById('no-spend-streak-value');
     const shoppingSpreeStatus = document.getElementById('shopping-spree-status');
 
-    // Calendar alerts configuration form fields mapping selectors
+    const quickGoalSelect = document.getElementById('quick-allocate-goal-select');
+    const quickGoalAmount = document.getElementById('quick-allocate-amount');
+    const quickGoalBtn = document.getElementById('quick-allocate-btn');
+
     const reminderForm = document.getElementById('reminder-form');
     const reminderListEl = document.getElementById('reminder-list');
+    const fullGridCalendarBody = document.getElementById('full-grid-calendar-body');
+    const calendarMonthLabel = document.getElementById('calendar-month-label');
     const receiptLightbox = document.getElementById('receipt-lightbox');
     const lightboxRenderTarget = document.getElementById('lightbox-render-target');
     const closeLightboxBtn = document.getElementById('close-lightbox-btn');
     const expenseAttachmentFile = document.getElementById('expense-attachment-file');
 
-    // Roommate allocation configurations parameters fields selectors
     const splitBillCheckbox = document.getElementById('split-bill-checkbox');
     const roommateCountDrawer = document.getElementById('roommate-count-drawer');
     const roommateTotalCount = document.getElementById('roommate-total-count');
@@ -129,10 +167,21 @@ if (checkNavigationAccessRights()) {
         "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
     ];
 
-    function captureChronologicalTimestamp(dateObject) {
-        const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const clockTime = dateObject.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        return `${calendarDate} @ ${clockTime}`;
+    function populateQuickGoalDropdown() {
+        if (!quickGoalSelect) return;
+        quickGoalSelect.innerHTML = '';
+        if (savingsGoals.length === 0) {
+            const opt = document.createElement('option');
+            opt.innerText = "No goals configured yet";
+            quickGoalSelect.appendChild(opt);
+            return;
+        }
+        savingsGoals.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.id;
+            opt.innerText = `🎯 ${g.name}`;
+            quickGoalSelect.appendChild(opt);
+        });
     }
 
     function setupInteractionFeatures() {
@@ -142,15 +191,11 @@ if (checkNavigationAccessRights()) {
         if (receiptLightbox) {
             receiptLightbox.addEventListener('click', (e) => { if (e.target === receiptLightbox) receiptLightbox.style.display = 'none'; });
         }
-
         if (splitBillCheckbox) {
             splitBillCheckbox.addEventListener('change', () => {
-                if (roommateCountDrawer) {
-                    roommateCountDrawer.style.display = splitBillCheckbox.checked ? 'block' : 'none';
-                }
+                if (roommateCountDrawer) roommateCountDrawer.style.display = splitBillCheckbox.checked ? 'block' : 'none';
             });
         }
-
         if (setAllowanceDayBtn) {
             setAllowanceDayBtn.addEventListener('click', () => {
                 const val = parseInt(prompt("Enter the day of the month your pocket money arrives (1-31):", targetAllowanceDropDay));
@@ -162,23 +207,63 @@ if (checkNavigationAccessRights()) {
             });
         }
 
+        if (quickGoalBtn) {
+            quickGoalBtn.addEventListener('click', () => {
+                if (!quickGoalSelect || !quickGoalAmount) return;
+                const targetId = parseInt(quickGoalSelect.value);
+                const fundingValue = parseFloat(quickGoalAmount.value) || 0;
+                
+                if (fundingValue <= 0) {
+                    alert("Please enter a valid deposit value.");
+                    return;
+                }
+                
+                let goalInstance = savingsGoals.find(g => g.id === targetId);
+                if (goalInstance) {
+                    if (typeof goalInstance.current === 'undefined') goalInstance.current = 0;
+                    goalInstance.current += fundingValue;
+
+                    const timestampNode = new Date();
+                    const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+                    
+                    expenses.push({
+                        id: Date.now(),
+                        name: `💰 Goal Deposit: ${goalInstance.name}`,
+                        amount: fundingValue,
+                        personalShare: fundingValue,
+                        category: "Socials",
+                        day: timestampNode.getDate(),
+                        timeStamp: absoluteTimeMarker,
+                        receiptUrl: ""
+                    });
+                    
+                    localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
+                    quickGoalAmount.value = '';
+                    
+                    updateDashboard();
+                    renderExpenses();
+                    renderHeatmap();
+                }
+            });
+        }
+
         if (reminderForm) {
             reminderForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const nameEl = document.getElementById('reminder-name');
                 const amountEl = document.getElementById('reminder-amount');
                 const dateEl = document.getElementById('reminder-date');
-
                 if (!nameEl || !amountEl || !dateEl) return;
 
-                const rawDate = dateEl.value;
-                const formattedDate = new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const rawDateVal = dateEl.value;
+                const formattedDate = new Date(rawDateVal).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
                 remindersList.push({ 
                     id: Date.now(), 
                     name: nameEl.value, 
                     amount: parseFloat(amountEl.value) || 0, 
-                    dateLabel: formattedDate 
+                    dateLabel: formattedDate,
+                    rawDate: rawDateVal
                 });
                 reminderForm.reset(); 
                 updateDashboard(); 
@@ -192,18 +277,10 @@ if (checkNavigationAccessRights()) {
                 const feeNameEl = document.getElementById('fee-name');
                 const feeAmountEl = document.getElementById('fee-amount');
                 const feeDateEl = document.getElementById('fee-date');
-
                 if (!feeNameEl || !feeAmountEl || !feeDateEl) return;
 
-                const rawDate = feeDateEl.value;
-                const formattedDate = new Date(rawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
-                academicFeesList.push({ 
-                    id: Date.now(), 
-                    name: feeNameEl.value, 
-                    amount: parseFloat(feeAmountEl.value) || 0, 
-                    targetDate: formattedDate 
-                });
+                const formattedDate = new Date(feeDateEl.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                academicFeesList.push({ id: Date.now(), name: feeNameEl.value, amount: parseFloat(feeAmountEl.value) || 0, targetDate: formattedDate });
                 academicFeeForm.reset();
                 renderAcademicFeesTimeline();
             });
@@ -221,27 +298,17 @@ if (checkNavigationAccessRights()) {
                 loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, day: timestampNode.getDate(), timeStamp: absoluteTimeMarker });
                 localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
                 incomeForm.reset();
-                updateDashboard(); 
-                renderExpenses(); 
-                renderHeatmap();
-                renderIncomeHistoryLog();
+                updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog();
             });
         }
 
-        // =========================================================================
-        // 🎯 FIXED: TRACKING AND CAPTURING TARGET SAVINGS FORM INTERCEPTOR
-        // =========================================================================
         if (goalForm) {
             goalForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                const initialSaved = parseFloat(document.getElementById('goal-current').value) || 0;
                 if (!goalNameInput || !goalTargetInput) return;
                 
-                savingsGoals.push({ 
-                    id: Date.now(), 
-                    name: goalNameInput.value, 
-                    target: parseFloat(goalTargetInput.value) || 0 
-                });
-                
+                savingsGoals.push({ id: Date.now(), name: goalNameInput.value, target: parseFloat(goalTargetInput.value) || 0, current: initialSaved });
                 goalForm.reset(); 
                 updateDashboard();
             });
@@ -260,7 +327,6 @@ if (checkNavigationAccessRights()) {
         const today = new Date();
         const currentDay = today.getDate();
         let daysRemaining = 0;
-
         if (currentDay <= targetAllowanceDropDay) {
             daysRemaining = targetAllowanceDropDay - currentDay;
         } else {
@@ -289,25 +355,85 @@ if (checkNavigationAccessRights()) {
         localStorage.setItem('academicFeesList', JSON.stringify(academicFeesList));
     }
 
-    window.deleteAcademicFee = function(id) {
-        academicFeesList = academicFeesList.filter(item => item.id !== id);
-        renderAcademicFeesTimeline();
-    };
+    window.deleteAcademicFee = function(id) { academicFeesList = academicFeesList.filter(item => item.id !== id); renderAcademicFeesTimeline(); };
 
-    function renderReminders() {
-        if (!reminderListEl) return;
+    // =========================================================================
+    // 📅 DYNAMIC GRID-BASED CALENDAR RENDERING ENGINE
+    // =========================================================================
+    window.renderReminders = function() {
+        if (!reminderListEl || !fullGridCalendarBody || !calendarMonthLabel) return;
+        
         reminderListEl.innerHTML = '';
         if (remindersList.length === 0) { 
             reminderListEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding: 10px;">No pending alerts.</p>`; 
-            return; 
+        } else {
+            remindersList.forEach(item => {
+                const li = document.createElement('li');
+                li.style.borderLeft = '3px solid var(--warning)';
+                const costText = item.amount > 0 ? `${currentCurrency}${item.amount.toFixed(2)}` : `<small>Task Tracker</small>`;
+                li.innerHTML = `<span>📅 <strong>${item.name}</strong> <small>Target: ${item.dateLabel}</small></span><span>${costText} <button class="delete-btn" onclick="deleteReminder(${item.id})">❌</button></span>`;
+                reminderListEl.appendChild(li);
+            });
         }
-        remindersList.forEach(item => {
-            const li = document.createElement('li');
-            li.style.borderLeft = '3px solid var(--warning)';
-            li.innerHTML = `<span>🔔 <strong>${item.name}</strong> <small>Due: ${item.dateLabel}</small></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteReminder(${item.id})">❌</button></span>`;
-            reminderListEl.appendChild(li);
-        });
         localStorage.setItem('remindersList', JSON.stringify(remindersList));
+
+        fullGridCalendarBody.innerHTML = '';
+        const year = activeCalendarDate.getFullYear();
+        const month = activeCalendarDate.getMonth();
+
+        calendarMonthLabel.innerText = activeCalendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const firstDayIdx = new Date(year, month, 1).getDay();
+        const totalDaysCount = new Date(year, month + 1, 0).getDate();
+        const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+        for (let x = firstDayIdx; x > 0; x--) {
+            const block = document.createElement('div');
+            block.className = 'calendar-day-node inactive-day';
+            block.innerText = prevMonthTotalDays - x + 1;
+            fullGridCalendarBody.appendChild(block);
+        }
+
+        for (let currentDayNum = 1; currentDayNum <= totalDaysCount; currentDayNum++) {
+            const block = document.createElement('div');
+            block.className = 'calendar-day-node';
+            
+            const nodeTitle = document.createElement('div');
+            nodeTitle.className = 'day-node-number';
+            nodeTitle.innerText = currentDayNum;
+            block.appendChild(nodeTitle);
+
+            const dayString = String(currentDayNum).padStart(2, '0');
+            const monthString = String(month + 1).padStart(2, '0');
+            const matchKey = `${year}-${monthString}-${dayString}`;
+
+            const systemToday = new Date();
+            if (currentDayNum === systemToday.getDate() && month === systemToday.getMonth() && year === systemToday.getFullYear()) {
+                block.classList.add('today-highlight');
+            }
+
+            const matchedReminders = remindersList.filter(item => item.rawDate === matchKey);
+            if (matchedReminders.length > 0) {
+                matchedReminders.forEach(task => {
+                    const pill = document.createElement('div');
+                    pill.className = 'calendar-task-pill';
+                    pill.title = `${task.name} (${currentCurrency}${task.amount})`;
+                    pill.innerText = task.amount > 0 ? `₹ ${task.name}` : task.name;
+                    block.appendChild(pill);
+                });
+            }
+
+            fullGridCalendarBody.appendChild(block);
+        }
+
+        const filledCellsCount = firstDayIdx + totalDaysCount;
+        const tailFillerNeeded = filledCellsCount % 7 === 0 ? 0 : 7 - (filledCellsCount % 7);
+        for (let trailingDay = 1; trailingDay <= tailFillerNeeded; trailingDay++) {
+            const block = document.createElement('div');
+            block.className = 'calendar-day-node inactive-day';
+            block.innerText = trailingDay;
+            fullGridCalendarBody.appendChild(block);
+        }
     }
 
     window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); };
@@ -321,26 +447,19 @@ if (checkNavigationAccessRights()) {
     }
 
     window.deleteSubscription = function(id) { subscriptions = subscriptions.filter(item => item.id !== id); updateDashboard(); renderSubscriptions(); };
-
-    function displayRandomTip() {
-        if (!dailyTipText) return;
-        const randomIndex = Math.floor(Math.random() * financialTips.length);
-        dailyTipText.innerText = financialTips[randomIndex];
-    }
+    function displayRandomTip() { if (dailyTipText) dailyTipText.innerText = financialTips[Math.floor(Math.random() * financialTips.length)]; }
 
     function setupCategoryDropdown() {
         if (!expenseCategorySelect) return;
         expenseCategorySelect.innerHTML = '';
         studentCategories.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat; option.innerText = cat; expenseCategorySelect.appendChild(option);
+            const option = document.createElement('option'); option.value = cat; option.innerText = cat; expenseCategorySelect.appendChild(option);
         });
     }
 
     function updateDashboard() {
         const cumulativeExtraIncome = loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
         const dynamicRollingBudgetCap = budget + cumulativeExtraIncome;
-
         const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); 
         const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
         const combinedOutflow = totalSpent + totalSubs;
@@ -348,7 +467,6 @@ if (checkNavigationAccessRights()) {
 
         const totalRoommatesOweYou = expenses.reduce((sum, item) => sum + ((parseFloat(item.amount) || 0) - (parseFloat(item.personalShare) || parseFloat(item.amount) || 0)), 0);
         if (roommatesOweTotal) roommatesOweTotal.innerText = `${currentCurrency}${totalRoommatesOweYou.toFixed(2)}`;
-
         if (totalBudgetEl) totalBudgetEl.innerText = `${currentCurrency}${dynamicRollingBudgetCap.toFixed(2)}`;
         if (totalExpensesEl) totalExpensesEl.innerText = `${currentCurrency}${combinedOutflow.toFixed(2)}`;
         if (balanceLeftEl) balanceLeftEl.innerText = `${currentCurrency}${balance.toFixed(2)}`;
@@ -390,14 +508,14 @@ if (checkNavigationAccessRights()) {
         generateAIInsights(combinedOutflow, dynamicRollingBudgetCap);
         renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap);
         analyzeUserHabitsStreaks();
-        renderSavingsGoals(dynamicRollingBudgetCap); 
+        renderSavingsGoals(); 
         if (expenseChart) updateChartData();
     }
 
     function renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap) {
         if (!categoryCapsContainer) return;
         categoryCapsContainer.innerHTML = '';
-        if (dynamicRollingBudgetCap <= 0) { categoryCapsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Lock a total budget parameter to display smart segment distribution gauges.</p>`; return; }
+        if (dynamicRollingBudgetCap <= 0) { categoryCapsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">Lock budget parameters to display gauges.</p>`; return; }
         const MathCapShares = [0.35, 0.25, 0.15, 0.15, 0.10]; 
 
         studentCategories.forEach((cat, index) => {
@@ -420,26 +538,25 @@ if (checkNavigationAccessRights()) {
         });
     }
 
-    function renderSavingsGoals(dynamicRollingBudgetCap) {
+    function renderSavingsGoals() {
         if (!goalsContainer) return;
         goalsContainer.innerHTML = '';
-        if (savingsGoals.length === 0) { goalsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">No long-term targets configured yet.</p>`; return; }
-
-        const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
-        const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-        const leftoverPool = Math.max(0, dynamicRollingBudgetCap - (totalSpent + totalSubs));
-
+        populateQuickGoalDropdown();
+        if (savingsGoals.length === 0) { 
+            goalsContainer.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center;">No milestones configured yet.</p>`; 
+            return; 
+        }
         savingsGoals.forEach(goal => {
-            const proportionalFund = savingsGoals.length > 0 ? (leftoverPool / savingsGoals.length) : 0;
-            const progressPercent = Math.min((proportionalFund / goal.target) * 100, 100);
+            const currentSavedAmount = goal.current || 0;
+            const progressPercent = Math.min((currentSavedAmount / goal.target) * 100, 100);
             const block = document.createElement('div');
             block.innerHTML = `
                 <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
                     <span>🎯 <strong>${goal.name}</strong></span>
-                    <span style="color:var(--text-muted); font-size:11px;">${currentCurrency}${proportionalFund.toFixed(0)} / ${currentCurrency}${goal.target.toFixed(0)} <button class="delete-btn" onclick="deleteGoal(${goal.id})">❌</button></span>
+                    <span style="color:var(--text-muted); font-size:11px;">${currentCurrency}${currentSavedAmount.toFixed(0)} / ${currentCurrency}${goal.target.toFixed(0)} <button class="delete-btn" onclick="deleteGoal(${goal.id})">❌</button></span>
                 </div>
                 <div style="width:100%; background:rgba(255,255,255,0.02); border-radius:10px; height:8px; overflow:hidden; border:1px solid var(--glass-border);">
-                    <div style="width:${progressPercent}%; background:linear-gradient(90deg, var(--accent), #818cf8); height:100%; border-radius:10px; transition:width 0.4s;"></div>
+                    <div style="width:${progressPercent}%; background:linear-gradient(90deg, #10b981, #818cf8); height:100%; border-radius:10px; transition:width 0.4s;"></div>
                 </div>
             `;
             goalsContainer.appendChild(block);
@@ -452,9 +569,7 @@ if (checkNavigationAccessRights()) {
         if (!noSpendStreakValue) return;
         const loggedDays = new Set(expenses.map(e => e.day));
         let currentStreak = 0;
-        for (let i = 1; i <= 31; i++) {
-            if (!loggedDays.has(i)) { currentStreak++; } else { break; }
-        }
+        for (let i = 1; i <= 31; i++) { if (!loggedDays.has(i)) { currentStreak++; } else { break; } }
         noSpendStreakValue.innerText = `${currentStreak} Days`;
 
         if (!shoppingSpreeStatus) return;
@@ -469,94 +584,71 @@ if (checkNavigationAccessRights()) {
         scannerArea.addEventListener('click', (e) => {
             if (!activeCameraStream && e.target !== startCameraBtn && e.target !== captureSnapshotBtn) { if (scannerFileInput) scannerFileInput.click(); }
         });
-        if (scannerFileInput) {
-            scannerFileInput.addEventListener('change', () => { if (scannerFileInput.files.length === 0) return; runScannerLogic(true); });
-        }
+        if (scannerFileInput) scannerFileInput.addEventListener('change', () => { if (scannerFileInput.files.length > 0) runScannerLogic(true); });
         if (startCameraBtn) {
             startCameraBtn.addEventListener('click', async (e) => {
                 e.stopPropagation(); if (activeCameraStream) { stopLiveVideoHardware(); return; }
                 try {
-                    const constraints = { video: { facingMode: "environment" }, audio: false };
-                    activeCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    activeCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
                     if (cameraStreamVideo) cameraStreamVideo.srcObject = activeCameraStream;
                     if (scannerPrompt) scannerPrompt.style.display = 'none';
                     if (cameraStreamVideo) cameraStreamVideo.style.display = 'block'; 
                     startCameraBtn.innerText = "🛑 Turn Off Camera"; 
                     if (captureSnapshotBtn) captureSnapshotBtn.disabled = false; 
-                    if (scannerLogStatus) scannerLogStatus.style.display = 'none';
-                } catch (err) { alert("Live camera access rejected."); console.error(err); }
+                } catch (err) { alert("Live camera access rejected."); }
             });
         }
         if (captureSnapshotBtn) {
-            captureSnapshotBtn.addEventListener('click', (e) => { e.stopPropagation(); if (!activeCameraStream) return; runScannerLogic(true); stopLiveVideoHardware(); });
+            captureSnapshotBtn.addEventListener('click', (e) => { e.stopPropagation(); runScannerLogic(true); stopLiveVideoHardware(); });
         }
     }
 
     function runScannerLogic(isValidBill) {
         if (!scannerLaser || !scannerLogStatus) return;
-        scannerLaser.style.display = 'block'; scannerLaser.style.animation = 'scanningMotion 2s infinite linear'; scannerLogStatus.style.display = 'block'; scannerLogStatus.style.color = 'var(--text-muted)'; scannerLogStatus.innerText = "🔍 OCR Scanner: Decoding structures...";
+        scannerLaser.style.display = 'block'; scannerLaser.style.animation = 'scanningMotion 2s infinite linear'; scannerLogStatus.style.display = 'block'; scannerLogStatus.innerText = "🔍 OCR Scanner: Decoding structures...";
         setTimeout(() => {
-            scannerLaser.style.display = 'none'; scannerLaser.style.animation = 'none';
-            const randomIndex = Math.floor(Math.random() * mockReceiptImages.length);
+            scannerLaser.style.display = 'none';
             const timestampNode = new Date();
-            const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
-
-            expenses.push({ 
-                id: Date.now(), 
-                name: `[OCR Scan] Text Books Bundle`, 
-                amount: 850, 
-                personalShare: 850,
-                category: "Books & Exams", 
-                day: timestampNode.getDate(), 
-                timeStamp: absoluteTimeMarker,
-                receiptUrl: mockReceiptImages[randomIndex] 
-            });
-            scannerLogStatus.style.color = 'var(--success)'; scannerLogStatus.innerText = `✅ Extracted Success!`;
-            updateDashboard(); renderExpenses(); renderHeatmap(); if(scannerFileInput) scannerFileInput.value = '';
+            expenses.push({ id: Date.now(), name: `[OCR Scan] Text Books Bundle`, amount: 850, personalShare: 850, category: "Books & Exams", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: mockReceiptImages[Math.floor(Math.random() * mockReceiptImages.length)] });
+            scannerLogStatus.innerText = `✅ Extracted Success!`;
+            updateDashboard(); renderExpenses(); renderHeatmap();
         }, 2500);
     }
 
     function stopLiveVideoHardware() {
-        if (!activeCameraStream) return; activeCameraStream.getTracks().forEach(track => track.stop()); activeCameraStream = null; if (cameraStreamVideo) cameraStreamVideo.srcObject = null;
+        if (!activeCameraStream) return; activeCameraStream.getTracks().forEach(track => track.stop()); activeCameraStream = null; 
         if (cameraStreamVideo) cameraStreamVideo.style.display = 'none'; if(scannerPrompt) scannerPrompt.style.display = 'block'; startCameraBtn.innerText = "🎥 Turn On Live Camera"; if (captureSnapshotBtn) captureSnapshotBtn.disabled = true;
     }
 
     function getCurrentScoreValue(combinedOutflow, dynamicRollingBudgetCap) {
         if (dynamicRollingBudgetCap <= 0) return 100;
-        let score = 100 - ((combinedOutflow / dynamicRollingBudgetCap) * 70); if (combinedOutflow > dynamicRollingBudgetCap) score = 100 - ((combinedOutflow / dynamicRollingBudgetCap) * 90);
-        const loggedDaysCount = new Set(expenses.map(e => e.day)).size; score += ((31 - loggedDaysCount) * 0.5);
+        let score = 100 - ((combinedOutflow / dynamicRollingBudgetCap) * 70);
         return Math.max(0, Math.min(100, Math.round(score)));
     }
 
     function calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap) {
         if (!healthScoreValue || !healthScoreStatus) return;
-        if (dynamicRollingBudgetCap <= 0) { healthScoreValue.innerText = "100"; healthScoreStatus.innerText = "Awaiting Budget"; healthScoreStatus.style.color = "var(--text-muted)"; return; }
+        if (dynamicRollingBudgetCap <= 0) { healthScoreValue.innerText = "100"; healthScoreStatus.innerText = "Awaiting Budget"; return; }
         const score = getCurrentScoreValue(combinedOutflow, dynamicRollingBudgetCap); healthScoreValue.innerText = score;
-        if (score >= 85) { healthScoreStatus.innerText = "Excellent ✨"; healthScoreStatus.style.color = "var(--success)"; } 
-        else if (score >= 65) { healthScoreStatus.innerText = "Good 👍"; healthScoreStatus.style.color = "#60a5fa"; } 
-        else { healthScoreStatus.innerText = "Risk Alert 🚨"; healthScoreStatus.style.color = "var(--danger)"; }
+        if (score >= 85) healthScoreStatus.innerText = "Excellent ✨";
+        else if (score >= 65) healthScoreStatus.innerText = "Good 👍";
+        else healthScoreStatus.innerText = "Risk Alert 🚨";
     }
 
     if (archiveMonthBtn) {
         archiveMonthBtn.addEventListener('click', () => {
-            if (budget <= 0 && expenses.length === 0) { alert("Cannot archive an empty workspace!"); return; }
+            if (budget <= 0 && expenses.length === 0) { alert("Cannot archive empty space!"); return; }
             const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
-            const cumulativeExtraIncome = loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-            const dynamicRollingBudgetCap = budget + cumulativeExtraIncome;
-            const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); const totalSubs = subscriptions.reduce((sum, item) => sum + parseFloat(item.amount), 0); const outflow = totalSpent + totalSubs;
-            historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); expenses = []; loggedIncomes = []; budget = 0;
-            localStorage.removeItem('loggedIncomes');
+            const outflow = expenses.reduce((sum, item) => sum + (item.personalShare || item.amount), 0) + subscriptions.reduce((sum, item) => sum + item.amount, 0);
+            historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, budget) }); 
+            expenses = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes');
             updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog();
         });
     }
 
     if (subscriptionForm) {
         subscriptionForm.addEventListener('submit', (e) => {
-            e.preventDefault(); 
-            const nameEl = document.getElementById('sub-name');
-            const amountEl = document.getElementById('sub-amount');
-            if (!nameEl || !amountEl) return;
-            
+            e.preventDefault(); const nameEl = document.getElementById('sub-name'); const amountEl = document.getElementById('sub-amount');
             subscriptions.push({ id: Date.now(), name: nameEl.value, amount: parseFloat(amountEl.value) || 0 }); 
             subscriptionForm.reset(); updateDashboard(); renderSubscriptions();
         });
@@ -564,286 +656,127 @@ if (checkNavigationAccessRights()) {
 
     function setupVoiceRecognition() {
         try {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
-            if (!SpeechRecognition || !voiceStartBtn) return; 
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition || !voiceStartBtn) return; 
             const recognition = new SpeechRecognition();
-            
-            voiceStartBtn.addEventListener('click', () => { 
-                recognition.start(); 
-                if (voiceStatus) voiceStatus.innerText = "Listening... Speak details."; 
-            });
-            
+            voiceStartBtn.addEventListener('click', () => { recognition.start(); if (voiceStatus) voiceStatus.innerText = "Listening..."; });
             recognition.onresult = function(event) {
-                const speechResult = event.results[0][0].transcript.toLowerCase(); 
-                if (voiceStatus) voiceStatus.innerText = `Heard: "${speechResult}"`; 
-                const matches = speechResult.match(/\d+/); 
-                if (!matches) return;
-                
-                const timestampNode = new Date();
-                const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
-                const amount = parseFloat(matches[0]) || 0;
-
-                expenses.push({ id: Date.now(), name: "Voice Entry Item", amount: amount, personalShare: amount, category: "Socials", day: timestampNode.getDate(), timeStamp: absoluteTimeMarker }); 
+                const result = event.results[0][0].transcript.toLowerCase(); const matches = result.match(/\d+/); if (!matches) return;
+                const timestampNode = new Date(); expenses.push({ id: Date.now(), name: "Voice Entry Item", amount: parseFloat(matches[0]), personalShare: parseFloat(matches[0]), category: "Socials", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode) }); 
                 updateDashboard(); renderExpenses(); renderHeatmap();
             };
-        } catch (e) {
-            console.warn("Microphone blocked: ", e);
-        }
+        } catch (e) {}
     }
 
     function generateAIInsights(combinedOutflow, dynamicRollingBudgetCap) {
         if (!aiInsightText) return;
-        if (dynamicRollingBudgetCap <= 0) { aiInsightText.innerText = "💡 Tip: Setup your allowance limit above to engage core predictive analytics projections."; return; }
+        if (dynamicRollingBudgetCap <= 0) { aiInsightText.innerText = "💡 Tip: Setup parameters limit baseline."; return; }
         const percentage = (combinedOutflow / dynamicRollingBudgetCap) * 100;
-        if (percentage > 100) { aiInsightText.innerText = `🚨 Cap Breach: Allowance thresholds exceeded by ${(percentage - 100).toFixed(0)}%!`; } 
-        else { aiInsightText.innerText = `👍 Efficient Trajectory: Current burn balances occupy roughly ${percentage.toFixed(0)}% of parameters caps.`; }
+        aiInsightText.innerText = percentage > 100 ? `🚨 Cap Breach: Exceeded by ${(percentage - 100).toFixed(0)}%!` : `👍 Trajectory Safe: Balances look standard.`;
     }
 
     function renderHeatmap() {
-        if (!heatmapCalendar) return;
-        heatmapCalendar.innerHTML = ''; const dailyTotals = {}; for (let i = 1; i <= 31; i++) dailyTotals[i] = 0;
+        if (!heatmapCalendar) return; heatmapCalendar.innerHTML = ''; const dailyTotals = {}; for (let i = 1; i <= 31; i++) dailyTotals[i] = 0;
         expenses.forEach(exp => { if (exp.day) dailyTotals[exp.day] += (parseFloat(exp.personalShare) || parseFloat(exp.amount) || 0); }); 
-        const maxSpentInADay = Math.max(...Object.values(dailyTotals), 1);
-        
+        const maxSpent = Math.max(...Object.values(dailyTotals), 1);
         for (let d = 1; d <= 31; d++) {
-            const dayAmount = dailyTotals[d]; const dayDiv = document.createElement('div'); dayDiv.className = 'heatmap-day'; dayDiv.innerHTML = `${d}<span>${dayAmount > 0 ? currentCurrency + dayAmount.toFixed(0) : ''}</span>`;
-            if (dayAmount > 0) { const intensity = Math.min((dayAmount / maxSpentInADay), 1); dayDiv.style.background = `rgba(139, 92, 246, ${0.15 + intensity * 0.65})`; dayDiv.style.color = '#fff'; }
+            const amt = dailyTotals[d]; const dayDiv = document.createElement('div'); dayDiv.className = 'heatmap-day'; dayDiv.innerHTML = `${d}<span>${amt > 0 ? currentCurrency + amt.toFixed(0) : ''}</span>`;
+            if (amt > 0) dayDiv.style.background = `rgba(139, 92, 246, ${0.15 + (amt / maxSpent) * 0.65})`;
             heatmapCalendar.appendChild(dayDiv);
         }
     }
 
-    if (clearAllBtn) clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs completely?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); } });
-    if (autoAllocateBtn) autoAllocateBtn.addEventListener('click', () => { const value = parseFloat(prompt("Enter monthly stipend money amount:")); if (value > 0) { budget = value * 0.8; updateDashboard(); } });
-    if (searchInput) searchInput.addEventListener('input', () => { renderExpenses(); });
-    if (currencySelect) currencySelect.addEventListener('change', () => { currentCurrency = currencySelect.value; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); });
-    if (setBudgetBtn) setBudgetBtn.addEventListener('click', () => { if (budgetInput) { const value = parseFloat(budgetInput.value); if (value > 0) { budget = value; budgetInput.value = ''; updateDashboard(); } } });
+    if (clearAllBtn) clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); } });
+    if (autoAllocateBtn) autoAllocateBtn.addEventListener('click', () => { const value = parseFloat(prompt("Stipend value:")); if (value > 0) { budget = value * 0.8; updateDashboard(); } });
+    if (searchInput) searchInput.addEventListener('input', renderExpenses);
+    if (setBudgetBtn) setBudgetBtn.addEventListener('click', () => { if (budgetInput && parseFloat(budgetInput.value) > 0) { budget = parseFloat(budgetInput.value); budgetInput.value = ''; updateDashboard(); } });
+
+    if (currencySelect) {
+        currencySelect.addEventListener('change', () => {
+            currentCurrency = currencySelect.value;
+            updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); if (trendChart) updateTrendChart();
+        });
+    }
 
     if (exportCsvBtn) {
         exportCsvBtn.addEventListener('click', () => {
-            if (expenses.length === 0 && loggedIncomes.length === 0) { alert("No logs found to export."); return; }
             let csvContent = "Type,Timestamp,Description,Category,Value\n";
             expenses.forEach(e => { csvContent += `"Expense", "${e.timeStamp || 'N/A'}", "${e.name}", "${e.category}", -${e.amount}\n`; });
-            loggedIncomes.forEach(i => { csvContent += `"Income Influx", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", +${i.amount}\n`; });
-            const encodedUri = 'data:text/csv;charset=utf-8,' + encodeURI(csvContent);
-            const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute('href', encodedUri); downloadAnchor.setAttribute('download', 'Student_Financial_Statement.csv');
-            document.body.appendChild(downloadAnchor); downloadAnchor.click(); document.body.removeChild(downloadAnchor);
+            loggedIncomes.forEach(i => { csvContent += `"Income", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", +${i.amount}\n`; });
+            const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURI(csvContent)); downloadAnchor.setAttribute('download', 'Statements.csv'); downloadAnchor.click();
         });
     }
 
     if (expenseForm) {
         expenseForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const timestampNode = new Date();
-            const absoluteTimeMarker = captureChronologicalTimestamp(timestampNode);
+            e.preventDefault(); const timestampNode = new Date(); const totalCostInput = parseFloat(document.getElementById('expense-amount').value) || 0;
+            let share = totalCostInput; if (splitBillCheckbox && splitBillCheckbox.checked) share = totalCostInput / ((parseInt(roommateTotalCount.value) || 1) + 1);
+            let url = expenseAttachmentFile && expenseAttachmentFile.files.length > 0 ? URL.createObjectURL(expenseAttachmentFile.files[0]) : "";
 
-            const totalCostInput = parseFloat(document.getElementById('expense-amount').value) || 0;
-            let dynamicPersonalShare = totalCostInput;
-
-            if (splitBillCheckbox && splitBillCheckbox.checked) {
-                const roommatesCount = parseInt(roommateTotalCount.value) || 1;
-                dynamicPersonalShare = totalCostInput / (roommatesCount + 1); 
-            }
-
-            let boundAttachmentUrl = "";
-            if (expenseAttachmentFile && expenseAttachmentFile.files.length > 0) {
-                boundAttachmentUrl = URL.createObjectURL(expenseAttachmentFile.files[0]);
-            }
-
-            expenses.push({ 
-                id: Date.now(), 
-                name: document.getElementById('expense-name').value, 
-                amount: totalCostInput, 
-                personalShare: dynamicPersonalShare, 
-                category: document.getElementById('expense-category').value, 
-                day: timestampNode.getDate(),
-                timeStamp: absoluteTimeMarker,
-                receiptUrl: boundAttachmentUrl 
-            });
-
-            expenseForm.reset();
-            if (roommateCountDrawer) roommateCountDrawer.style.display = 'none';
+            expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: url });
+            expenseForm.reset(); if (roommateCountDrawer) roommateCountDrawer.style.display = 'none';
             updateDashboard(); renderExpenses(); renderHeatmap();
         });
     }
 
     function renderExpenses() {
-        if (!expenseList) return;
-        expenseList.innerHTML = ''; const query = searchInput.value.toLowerCase();
-        let globalUnifiedTimeline = [];
+        if (!expenseList) return; expenseList.innerHTML = ''; const query = searchInput.value.toLowerCase(); let timeline = [];
+        expenses.forEach(e => timeline.push({ ...e, type: 'expense', sort: e.id }));
+        loggedIncomes.forEach(i => timeline.push({ ...i, type: 'income', category: i.typeLabel, personalShare: i.amount, sort: i.id }));
+        timeline.sort((a, b) => b.sort - a.sort);
 
-        expenses.forEach(item => {
-            globalUnifiedTimeline.push({ id: item.id, type: 'expense', name: item.name, category: item.category, amount: item.amount, personalShare: item.personalShare, timeStamp: item.timeStamp, receiptUrl: item.receiptUrl, rawSortDate: item.id });
-        });
-        loggedIncomes.forEach(item => {
-            globalUnifiedTimeline.push({ id: item.id, type: 'income', name: item.name, category: item.typeLabel, amount: item.amount, personalShare: item.amount, timeStamp: item.timeStamp, receiptUrl: null, rawSortDate: item.id });
-        });
-
-        globalUnifiedTimeline.sort((a, b) => b.rawSortDate - a.rawSortDate);
-        if (globalUnifiedTimeline.length === 0) { expenseList.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:15px;">No transactions logged.</p>`; return; }
-
-        globalUnifiedTimeline.forEach(item => {
+        if (timeline.length === 0) { expenseList.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:15px;">No logs.</p>`; return; }
+        timeline.forEach(item => {
             if (query && !item.name.toLowerCase().includes(query) && !item.category.toLowerCase().includes(query)) return;
-            const li = document.createElement('li'); 
+            const li = document.createElement('li');
             if (item.type === 'expense') {
-                const dateBadge = `<span style="color:var(--success); font-size:11px; font-weight:600; margin-right:12px;">🗓️ ${item.timeStamp || 'Just Now'}</span>`;
-                const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View Receipt</button>` : '';
-                const splitLabelInfo = item.amount !== item.personalShare ? ` <small style="color:var(--warning)">[Split - Share: ${currentCurrency}${item.personalShare.toFixed(0)}]</small>` : '';
-                li.innerHTML = `<span>${dateBadge}<strong>${item.name}</strong> <small style="color:var(--text-muted)">(${item.category})</small>${splitLabelInfo} ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
+                const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
+                li.innerHTML = `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${item.timeStamp}</span><strong>${item.name}</strong> <small>(${item.category})</small> ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
             } else {
-                const dateBadge = `<span style="color:#06b6d4; font-size:11px; font-weight:600; margin-right:12px;">💰 ${item.timeStamp || 'Just Now'}</span>`;
-                li.innerHTML = `<span>${dateBadge}<strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong> <small style="color:var(--text-muted)">(${item.category})</small></span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
-                li.style.borderColor = 'rgba(16, 185, 129, 0.2)'; li.style.background = 'rgba(16, 185, 129, 0.01)';
+                li.innerHTML = `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${item.timeStamp}</span><strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong></span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
             }
             expenseList.appendChild(li);
         });
     }
 
-    window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
-    window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
-
     function renderIncomeHistoryLog() {
-        if (!incomeHistoryListEl) return;
-        incomeHistoryListEl.innerHTML = '';
-
-        if (loggedIncomes.length === 0) {
-            incomeHistoryListEl.innerHTML = `<p style="color:var(--text-muted); font-size:12px; text-align:center; padding:10px;">No custom cash injections logged.</p>`;
-            return;
-        }
-
-        const sortedIncomes = [...loggedIncomes].sort((a, b) => b.id - a.id);
-
-        sortedIncomes.forEach(item => {
-            const li = document.createElement('li');
-            li.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-            li.style.background = 'rgba(16, 185, 129, 0.02)';
-            li.style.marginBottom = '6px';
-            li.style.display = 'flex';
-            li.style.justifyContent = 'space-between';
-            li.style.alignItems = 'center';
-
-            li.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                    <span style="font-weight:600; font-size:13px; color:var(--text-main);">${item.name} <small style="color:var(--text-muted)">(${item.typeLabel})</small></span>
-                    <span style="font-size:10px; color:#06b6d4;">⏱️ ${item.timeStamp}</span>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="color:var(--success); font-weight:700; font-size:13px;">+${currentCurrency}${item.amount.toFixed(2)}</span>
-                    <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})" style="font-size:12px; margin:0; padding:0; background:transparent; border:none; cursor:pointer;">❌</button>
-                </div>
-            `;
+        if (!incomeHistoryListEl) return; incomeHistoryListEl.innerHTML = '';
+        if (loggedIncomes.length === 0) { incomeHistoryListEl.innerHTML = `<p style="color:var(--text-muted); font-size:12px; text-align:center;">No custom logs.</p>`; return; }
+        loggedIncomes.forEach(item => {
+            const li = document.createElement('li'); li.style.marginBottom = '6px';
+            li.innerHTML = `<div><strong>${item.name}</strong><br><small style="color:#06b6d4;">${item.timeStamp}</small></div><div><span style="color:var(--success);">+${currentCurrency}${item.amount.toFixed(2)}</span> <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})">❌</button></div>`;
             incomeHistoryListEl.appendChild(li);
         });
     }
 
-    window.deleteIncomeFromLog = function(id) {
-        loggedIncomes = loggedIncomes.filter(item => item.id !== id);
-        localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
-        updateDashboard();
-        renderExpenses();
-        renderHeatmap();
-        renderIncomeHistoryLog();
-    };
+    window.deleteIncomeFromLog = function(id) { loggedIncomes = loggedIncomes.filter(i => i.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
 
-    // =========================================================================
-    // 📊 CHART SAFELY INITIALIZED VIA DELAY MATRICES
-    // =========================================================================
     function initChart() {
-        const chartEl = document.getElementById('expense-chart'); 
-        if (!chartEl) return; 
-        const ctx = chartEl.getContext('2d');
-        
+        const chartEl = document.getElementById('expense-chart'); if (!chartEl) return;
         setTimeout(() => {
-            expenseChart = new Chart(ctx, { 
-                type: 'doughnut', 
-                data: { 
-                    labels: studentCategories, 
-                    datasets: [{ 
-                        data: studentCategories.map(() => 0), 
-                        backgroundColor: ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'], 
-                        borderWidth: 0 
-                    }] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { labels: { color: '#f8fafc' } } } 
-                } 
-            });
+            expenseChart = new Chart(chartEl.getContext('2d'), { type: 'doughnut', data: { labels: studentCategories, datasets: [{ data: studentCategories.map(() => 0), backgroundColor: ['#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#f8fafc' } } } } });
             updateChartData();
         }, 60); 
     }
 
-    function updateChartData() {
+    var updateChartData = function() {
         if (!expenseChart) return;
-        expenseChart.data.labels = studentCategories; 
-        expenseChart.data.datasets[0].data = studentCategories.map(cat => 
-            expenses.filter(item => item.category === cat).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0)
-        ); 
+        expenseChart.data.datasets[0].data = studentCategories.map(cat => expenses.filter(item => item.category === cat).reduce((sum, item) => sum + (item.personalShare || item.amount), 0));
         expenseChart.update();
     }
 
     function initTrendChart() {
-        const trendEl = document.getElementById('history-trend-chart'); 
-        if (!trendEl) return; 
-        const ctx = trendEl.getContext('2d');
-        
+        const trendEl = document.getElementById('history-trend-chart'); if (!trendEl) return;
         setTimeout(() => {
-            trendChart = new Chart(ctx, { 
-                type: 'line', 
-                data: { 
-                    labels: historyLog.map(item => item.label), 
-                    datasets: [
-                        { label: 'Score', data: historyLog.map(item => item.score), borderColor: '#8b5cf6', backgroundColor: 'transparent', tension: 0.3, yAxisID: 'y' }, 
-                        { label: 'Outflow', data: historyLog.map(item => item.spent), borderColor: '#10b981', backgroundColor: 'transparent', tension: 0.3, borderDash: [5, 5], yAxisID: 'y1' }
-                    ] 
-                }, 
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { 
-                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } }, 
-                        y: { type: 'linear', display: true, position: 'left', min: 0, max: 100 }, 
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } 
-                    }, 
-                    plugins: { legend: { display: false } } 
-                } 
-            });
+            trendChart = new Chart(trendEl.getContext('2d'), { type: 'line', data: { labels: historyLog.map(i => i.label), datasets: [{ label: 'Score', data: historyLog.map(i => i.score), borderColor: '#8b5cf6', yAxisID: 'y' }, { label: 'Outflow', data: historyLog.map(i => i.spent), borderColor: '#10b981', borderDash: [5, 5], yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#94a3b8' } }, y: { min: 0, max: 100 }, y1: { position: 'right' } } } });
         }, 60);
     }
 
-    function updateTrendChart() { 
-        if (!trendChart) return; 
-        trendChart.data.labels = historyLog.map(item => item.label); 
-        trendChart.data.datasets[0].data = historyLog.map(item => parseFloat(item.score) || 0); 
-        trendChart.data.datasets[1].data = historyLog.map(item => parseFloat(item.spent) || 0); 
-        trendChart.update(); 
-    }
+    var updateTrendChart = function() { if (trendChart) { trendChart.data.labels = historyLog.map(i => i.label); trendChart.data.datasets[0].data = historyLog.map(i => i.score); trendChart.data.datasets[1].data = historyLog.map(i => i.spent); trendChart.update(); } }
 
     function init() {
         const savedName = sessionStorage.getItem('userDisplayName');
-        const nameLabelEl = document.getElementById('user-display-name');
-        if (savedName && nameLabelEl) {
-            nameLabelEl.innerText = savedName.split(' ')[0] + " 🎓";
-        }
-
-        displayRandomTip();
-        setupCategoryDropdown();
-        setupInteractionFeatures();
-        updateDashboard();
-        renderExpenses();
-        renderSubscriptions();
-        renderSavingsGoals();
-        renderReminders();
-        renderAcademicFeesTimeline();
-        calculateAllowanceCountdownDays();
-        renderHeatmap();
-        renderIncomeHistoryLog(); 
-        
-        initChart();
-        initTrendChart();
-        setupVoiceRecognition();
-        setupReceiptScanner();
+        if (savedName && document.getElementById('user-display-name')) document.getElementById('user-display-name').innerText = savedName.split(' ')[0] + " 🎓";
+        displayRandomTip(); setupCategoryDropdown(); setupInteractionFeatures(); updateDashboard(); renderExpenses(); renderSubscriptions(); renderSavingsGoals(); renderReminders(); renderAcademicFeesTimeline(); calculateAllowanceCountdownDays(); renderHeatmap(); renderIncomeHistoryLog(); initChart(); initTrendChart(); setupVoiceRecognition(); setupReceiptScanner();
     }
-
     init();
 }
