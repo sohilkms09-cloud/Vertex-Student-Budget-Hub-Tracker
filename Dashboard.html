@@ -260,7 +260,7 @@
                 <form id="academic-fee-form" class="input-group" style="margin-top: 15px; margin-bottom: 15px;">
                     <input type="text" id="fee-name" placeholder="Fee Identifier (e.g. Sem 3 Tuition)" required style="flex: 2;">
                     <input type="number" id="fee-amount" placeholder="Amount Due" required style="flex: 1;">
-                    <input type="date" id="fee-date" required style="flex: 1.5;">
+                    <input type="text" id="fee-date" placeholder="📅 Due Date (Select)" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')" required style="flex: 1.5;">
                     <button type="submit" style="background: var(--accent); flex: 1;">Add Fee Milestone</button>
                 </form>
                 <ul id="academic-fees-list" class="ledger-scroller-view"></ul>
@@ -288,7 +288,7 @@
                     <form id="reminder-form" class="expense-vertical-form" style="margin-top: 20px; margin-bottom: 15px;">
                         <input type="text" id="reminder-name" placeholder="Task or Budget Reminder (e.g. Mobile Recharge)" required>
                         <input type="number" id="reminder-amount" placeholder="Due Amount (Enter 0 if just task)" required>
-                        <input type="date" id="reminder-date" required>
+                        <input type="text" id="reminder-date" placeholder="📅 Select Target Calendar Date" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')" required>
                         <button type="submit" style="background: var(--accent);">Schedule Onto Grid Tracker</button>
                     </form>
                     <ul id="reminder-list" class="ledger-scroller-view"></ul>

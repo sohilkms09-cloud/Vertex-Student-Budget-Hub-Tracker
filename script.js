@@ -1,35 +1,4 @@
 // =========================================================================
-// 🌐 GLOBAL APPLICATION STATE STORAGE MATRICES
-// =========================================================================
-window.activeCalendarDate = new Date();
-var expenseChart = null;
-var trendChart = null;
-var activeCameraStream = null;
-
-var budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
-var expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
-var subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
-var historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
-var savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
-var remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
-var academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
-var targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
-var loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
-
-var currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
-const studentCategories = ['Hostel/Rent', 'Mess & Food', 'Books & Exams', 'Travel', 'Socials'];
-
-const financialTips = [
-    "💡 Tip: Track your campus micro-transactions. Small coffees and daily snacks can quietly drain your allowance balance.",
-    "💡 Tip: Roommate debts add up! Make sure to log splits right away so you don't end up funding shared items alone."
-];
-
-const mockReceiptImages = [
-    "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=500&q=80",
-    "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
-];
-
-// =========================================================================
 // 🚀 DYNAMIC TAB VIEW ROUTING SWITCH ENGINE (GLOBAL UNRESTRICTED ACCESS)
 // =========================================================================
 window.switchActiveTab = function(event, tabId) {
@@ -70,19 +39,47 @@ function checkNavigationAccessRights() {
 }
 
 // =========================================================================
-// 🏁 CORE ENGINE LIFECYCLE RUNTIME INIT PIPELINE
+// 🌐 GLOBAL APPLICATION STATE STORAGE MATRICES
+// =========================================================================
+window.activeCalendarDate = new Date();
+var expenseChart = null;
+var trendChart = null;
+var activeCameraStream = null;
+
+var budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
+var expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
+var subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
+var historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
+var savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
+var remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
+var academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
+var targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
+var loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
+
+var currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
+const studentCategories = ['Hostel/Rent', 'Mess & Food', 'Books & Exams', 'Travel', 'Socials'];
+
+const financialTips = [
+    "💡 Tip: Track your campus micro-transactions. Small coffees and daily snacks can quietly drain your allowance balance.",
+    "💡 Tip: Roommate debts add up! Make sure to log splits right away so you don't end up funding shared items alone."
+];
+
+const mockReceiptImages = [
+    "https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=500&q=80",
+    "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
+];
+
+// =========================================================================
+// 🚪 GLOBAL DEPLOYMENT CORE RUNTIME LIFE PIPELINE
 // =========================================================================
 document.addEventListener("DOMContentLoaded", () => {
-    // Check access directly when DOM loads
     if (!checkNavigationAccessRights()) return;
 
-    // Set up active user title context tracking HUD
     const savedName = sessionStorage.getItem('userDisplayName');
     if (savedName && document.getElementById('user-display-name')) {
         document.getElementById('user-display-name').innerText = savedName.split(' ')[0] + " 🎓";
     }
 
-    // Attach static logout buttons execution layers
     const logoutBtn = document.getElementById('google-logout-trigger-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -93,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Execute application functional layouts arrays mapping structures
     displayRandomTip();
     setupCategoryDropdown();
     setupInteractionFeatures();
@@ -113,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // =========================================================================
-// 🛠️ DATA PROCESSING & DOM RENDERING CORE FUNCTIONS
+// 🛠️ COMPONENT LAYOUT GENERATION INTERFACES
 // =========================================================================
 function captureChronologicalTimestamp(dateObject) {
     const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -301,15 +297,6 @@ function setupInteractionFeatures() {
         });
     }
 }
-
-window.openReceiptLightbox = function(imageUrl) {
-    const lightboxRenderTarget = document.getElementById('lightbox-render-target');
-    const receiptLightbox = document.getElementById('receipt-lightbox');
-    if (lightboxRenderTarget && receiptLightbox) {
-        lightboxRenderTarget.src = imageUrl; 
-        receiptLightbox.style.display = 'flex';
-    }
-};
 
 function calculateAllowanceCountdownDays() {
     const allowanceDaysCounter = document.getElementById('allowance-days-counter');
@@ -652,19 +639,51 @@ function calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap)
     else healthScoreStatus.innerText = "Risk Alert 🚨";
 }
 
+// FIXED: AUTOMATIC AUDIO TURNOFF SEQUENCE INTERCEPTOR LAYER
 function setupVoiceRecognition() {
     const voiceStartBtn = document.getElementById('voice-start-btn');
     const voiceStatus = document.getElementById('voice-status');
     try {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition || !voiceStartBtn) return; 
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; 
+        if (!SpeechRecognition || !voiceStartBtn) return; 
         const recognition = new SpeechRecognition();
-        voiceStartBtn.addEventListener('click', () => { recognition.start(); if (voiceStatus) voiceStatus.innerText = "Listening..."; });
+        
+        voiceStartBtn.addEventListener('click', () => { 
+            recognition.start(); 
+            if (voiceStatus) voiceStatus.innerText = "Listening... Speak details."; 
+        });
+        
         recognition.onresult = function(event) {
-            const result = event.results[0][0].transcript.toLowerCase(); const matches = result.match(/\d+/); if (!matches) return;
-            const timestampNode = new Date(); expenses.push({ id: Date.now(), name: "Voice Entry Item", amount: parseFloat(matches[0]), personalShare: parseFloat(matches[0]), category: "Socials", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode) }); 
-            updateDashboard(); renderExpenses(); renderHeatmap();
+            const result = event.results[0][0].transcript.toLowerCase(); 
+            if (voiceStatus) voiceStatus.innerText = `Heard: "${result}"`; 
+            
+            // Auto turn off microphone directly after parsing text phrase structure
+            recognition.stop();
+            
+            const matches = result.match(/\d+/); 
+            if (!matches) return;
+            
+            const timestampNode = new Date(); 
+            expenses.push({ 
+                id: Date.now(), 
+                name: "Voice Entry Item", 
+                amount: parseFloat(matches[0]), 
+                personalShare: parseFloat(matches[0]), 
+                category: "Socials", 
+                day: timestampNode.getDate(), 
+                timeStamp: captureChronologicalTimestamp(timestampNode) 
+            }); 
+            updateDashboard(); 
+            renderExpenses(); 
+            renderHeatmap();
         };
-    } catch (e) {}
+
+        recognition.onend = function() {
+            if (voiceStatus) voiceStatus.innerText = "Microphone auto-closed.";
+        };
+    } catch (e) {
+        console.warn("Audio Context Failed: ", e);
+    }
 }
 
 function generateAIInsights(combinedOutflow, dynamicRollingBudgetCap) {
