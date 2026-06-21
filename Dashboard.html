@@ -15,23 +15,20 @@
 <body class="dark-theme">
 
     <div class="glass-container">
-        <div class="toolbar">
-            <div class="mode-toggle">
-                <label><input type="checkbox" id="student-mode-toggle" checked disabled> 🎓 Student Mode Core</label>
-            </div>
-            
-            <div class="auth-hud-right-corner">
-                <div id="user-profile-identity-wrapper" style="display: flex; align-items: center; gap: 12px;">
-                    <span id="user-display-name" style="font-size: 13px; font-weight: 700; color: var(--text-main);">✨ Active Student</span>
-                    <button id="google-logout-trigger-btn" class="logout-btn-premium">⎋ Logout</button>
-                </div>
-            </div>
-
+        <div class="toolbar-realigned">
             <div class="currency-box">
                 <select id="currency-select">
                     <option value="₹">Rupees (₹)</option>
                     <option value="$">Dollars ($)</option>
                 </select>
+            </div>
+            
+            <div class="center-user-identity">
+                <span id="user-display-name">Sohil 🎓</span>
+            </div>
+
+            <div class="auth-hud-right-corner">
+                <button id="google-logout-trigger-btn" class="logout-btn-premium">⎋ Logout</button>
             </div>
         </div>
 
