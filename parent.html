@@ -109,9 +109,10 @@
             <div class="parent-mode-badge">👨‍👩‍👦 Parent View Portal</div>
             <h1 class="parent-title-main">Vertex Budget Hub</h1>
             <div class="student-identity-badge">
-                <p>Official Read-Only Financial Statement Overview for <span id="parent-student-name" class="student-name-highlight">STUDENT 🎓</span></p>
+                <p>Official Read-Only Financial Statement Overview for <span id="user-display-name" class="student-name-highlight"> SOHIL </span></p>
             </div>
         </div>
+       
 
         <div class="glass-card" style="border-top: 4px solid #38bdf8;">
             <h2>👛 Active Wallet Account Balances</h2>
@@ -149,9 +150,13 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+            // Updated to pull the exact userDisplayName set by the dashboard page
             const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
-            if (savedName && document.getElementById('parent-student-name')) {
-                document.getElementById('parent-student-name').innerText = savedName.split(' ')[0].toUpperCase() + " 🎓";
+            const parentNameDisplay = document.getElementById('user-display-name');
+            
+            if (savedName && parentNameDisplay) {
+                // Extracts the first name, converts to uppercase, and updates the view portal header
+                parentNameDisplay.innerText = " " + savedName.split(' ')[0].toUpperCase() + " 🎓";
             }
 
             const gpayInitial = parseFloat(localStorage.getItem('gpayWalletInitial')) || 0;
