@@ -1,3 +1,19 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBMCi07hJv05ks9iJfO1H0DUpsVemyidOw",
+  authDomain: "vertex-budget-hub.firebaseapp.com",
+  projectId: "vertex-budget-hub",
+  storageBucket: "vertex-budget-hub.firebasestorage.app",
+  messagingSenderId: "471027628472",
+  appId: "1:471027628472:web:52a03ec675fb06bf25774d"
+};
+
+// Initialize Firebase & Firestore Cloud Engine
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 // =========================================================================
 // 🚀 DYNAMIC TAB VIEW ROUTING SWITCH ENGINE (GLOBAL UNRESTRICTED ACCESS)
 // =========================================================================
@@ -39,27 +55,26 @@ function checkNavigationAccessRights() {
 }
 
 // =========================================================================
-// 🌐 GLOBAL APPLICATION STATE STORAGE MATRICES
+// 🌐 GLOBAL APPLICATION STATE STORAGE MATRICES (Initialized Empty)
 // =========================================================================
 window.activeCalendarDate = new Date();
 var expenseChart = null;
 var trendChart = null;
 var activeCameraStream = null;
 
-var gpayWalletInitial = localStorage.getItem('gpayWalletInitial') ? parseFloat(localStorage.getItem('gpayWalletInitial')) : 0;
-var cashWalletInitial = localStorage.getItem('cashWalletInitial') ? parseFloat(localStorage.getItem('cashWalletInitial')) : 0;
+var gpayWalletInitial = 0;
+var cashWalletInitial = 0;
+var expenses = [];
+var subscriptions = [];
+var historyLog = [];
+var savingsGoals = [];
+var remindersList = [];
+var academicFeesList = [];
+var targetAllowanceDropDay = 1; 
+var loggedIncomes = [];
+var internalTransfers = [];
 
-var expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
-var subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
-var historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
-var savingsGoals = localStorage.getItem('savingsGoals') ? JSON.parse(localStorage.getItem('savingsGoals')) : [];
-var remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStorage.getItem('remindersList')) : [];
-var academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
-var targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
-var loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
-var internalTransfers = localStorage.getItem('internalTransfers') ? JSON.parse(localStorage.getItem('internalTransfers')) : [];
-
-var currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
+var currentCurrency = '₹';
 const studentCategories = ['Hostel/Rent', 'Mess & Food', 'Books & Exams', 'Travel', 'Socials'];
 
 const financialTips = [
@@ -85,9 +100,9 @@ function parseFileAsDataUrl(fileInputElement) {
 }
 
 // =========================================================================
-// 🚪 GLOBAL DEPLOYMENT CORE RUNTIME LIFE PIPELINE
+// 🚪 GLOBAL DEPLOYMENT CORE RUNTIME LIFE PIPELINE (Cloud Initialized)
 // =========================================================================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     if (!checkNavigationAccessRights()) return;
 
     const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
@@ -97,6 +112,31 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             document.getElementById('user-display-name').innerText = "STUDENT 🎓";
         }
+    }
+
+    // ─── STEP 4 (PART 2): INITIALIZE DATA FROM FIREBASE ───
+    const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+    const docRef = doc(db, "student_budgets", userIdentifier);
+
+    try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const cloudData = docSnap.data();
+            gpayWalletInitial = cloudData.gpayWalletInitial ?? 0;
+            cashWalletInitial = cloudData.cashWalletInitial ?? 0;
+            expenses = cloudData.expenses ?? [];
+            subscriptions = cloudData.subscriptions ?? [];
+            historyLog = cloudData.historyLog ?? [];
+            savingsGoals = cloudData.savingsGoals ?? [];
+            remindersList = cloudData.remindersList ?? [];
+            academicFeesList = cloudData.academicFeesList ?? [];
+            targetAllowanceDropDay = cloudData.targetAllowanceDropDay ?? 1;
+            loggedIncomes = cloudData.loggedIncomes ?? [];
+            internalTransfers = cloudData.internalTransfers ?? [];
+            currentCurrency = cloudData.currency ?? '₹';
+        }
+    } catch (error) {
+        console.error("Error reading setup data from Firebase:", error);
     }
 
     const currencySelect = document.getElementById('currency-select');
@@ -206,7 +246,6 @@ function setupInteractionFeatures() {
         generateParentUrlBtn.addEventListener('click', () => {
             const rawName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || "Student";
             const cleanName = encodeURIComponent(rawName.trim());
-            // Dynamically inject structural parameters mapping student identifier directly inside link stream
             const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}`;
             
             navigator.clipboard.writeText(parentUrlLink).then(() => {
@@ -233,8 +272,8 @@ function setupInteractionFeatures() {
             const val = parseInt(prompt("Enter the day of the month your pocket money arrives (1-31):", targetAllowanceDropDay));
             if (val >= 1 && val <= 31) {
                 targetAllowanceDropDay = val;
-                localStorage.setItem('targetAllowanceDropDay', targetAllowanceDropDay);
                 calculateAllowanceCountdownDays();
+                updateDashboard();
             }
         });
     }
@@ -282,7 +321,6 @@ function setupInteractionFeatures() {
                     receiptUrl: encodedFileUrl 
                 });
                 
-                localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
                 quickGoalAmount.value = '';
                 if(goalAttachmentFile) goalAttachmentFile.value = '';
                 updateDashboard(); renderExpenses(); renderHeatmap();
@@ -311,7 +349,7 @@ function setupInteractionFeatures() {
             if (!feeNameEl || !feeAmountEl || !feeDateEl) return;
             const formattedDate = new Date(feeDateEl.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             academicFeesList.push({ id: Date.now(), name: feeNameEl.value, amount: parseFloat(feeAmountEl.value) || 0, targetDate: formattedDate });
-            academicFeeForm.reset(); renderAcademicFeesTimeline();
+            academicFeeForm.reset(); renderAcademicFeesTimeline(); updateDashboard();
         });
     }
     if (incomeForm) {
@@ -337,7 +375,6 @@ function setupInteractionFeatures() {
                 receiptUrl: encodedFileUrl
             });
             
-            localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
             incomeForm.reset(); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog();
         });
     }
@@ -364,7 +401,6 @@ function setupInteractionFeatures() {
                 amountValue: amount,
                 timestamp: captureChronologicalTimestamp(new Date())
             });
-            localStorage.setItem('internalTransfers', JSON.stringify(internalTransfers));
             internalTransferForm.reset();
             updateDashboard();
             renderTransferHistoryLog();
@@ -424,9 +460,6 @@ function setupInteractionFeatures() {
             gpayWalletInitial = gpayVal;
             cashWalletInitial = cashVal;
             
-            localStorage.setItem('gpayWalletInitial', gpayWalletInitial);
-            localStorage.setItem('cashWalletInitial', cashWalletInitial);
-            
             document.getElementById('gpay-initial-input').value = '';
             document.getElementById('cash-initial-input').value = '';
             updateDashboard();
@@ -438,8 +471,6 @@ function setupInteractionFeatures() {
             if (value > 0) { 
                 gpayWalletInitial = value * 0.8; 
                 cashWalletInitial = value * 0.2;
-                localStorage.setItem('gpayWalletInitial', gpayWalletInitial);
-                localStorage.setItem('cashWalletInitial', cashWalletInitial);
                 updateDashboard(); 
             } 
         }); 
@@ -449,7 +480,6 @@ function setupInteractionFeatures() {
     if (currencySelect) {
         currencySelect.addEventListener('change', () => {
             currentCurrency = currencySelect.value;
-            localStorage.setItem('currency', currentCurrency);
             
             try { updateDashboard(); } catch(e) { console.error(e); }
             try { renderExpenses(); } catch(e) { console.error(e); }
@@ -463,7 +493,7 @@ function setupInteractionFeatures() {
         });
     }
     if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; localStorage.removeItem('loggedIncomes'); localStorage.removeItem('internalTransfers'); localStorage.removeItem('gpayWalletInitial'); localStorage.removeItem('cashWalletInitial'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog(); } });
+        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog(); } });
     }
     if (archiveMonthBtn) {
         archiveMonthBtn.addEventListener('click', () => {
@@ -472,7 +502,7 @@ function setupInteractionFeatures() {
             const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
             const outflow = expenses.reduce((sum, item) => sum + (item.personalShare || item.amount), 0) + subscriptions.reduce((sum, item) => sum + item.amount, 0);
             historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); 
-            expenses = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; localStorage.removeItem('loggedIncomes'); localStorage.removeItem('internalTransfers'); localStorage.removeItem('gpayWalletInitial'); localStorage.removeItem('cashWalletInitial');
+            expenses = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0;
             updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog();
         });
     }
@@ -539,10 +569,9 @@ function renderAcademicFeesTimeline() {
         academicFeesListEl.appendChild(li);
     });
     if (academicFeesTotalSum) academicFeesTotalSum.innerText = `${currentCurrency}${totalSumOverhead.toFixed(2)}`;
-    localStorage.setItem('academicFeesList', JSON.stringify(academicFeesList));
 }
 
-window.deleteAcademicFee = function(id) { academicFeesList = academicFeesList.filter(item => item.id !== id); renderAcademicFeesTimeline(); };
+window.deleteAcademicFee = function(id) { academicFeesList = academicFeesList.filter(item => item.id !== id); renderAcademicFeesTimeline(); updateDashboard(); };
 
 window.renderReminders = function() {
     const reminderListEl = document.getElementById('reminder-list');
@@ -562,7 +591,6 @@ window.renderReminders = function() {
             reminderListEl.appendChild(li);
         });
     }
-    localStorage.setItem('remindersList', JSON.stringify(remindersList));
 
     fullGridCalendarBody.innerHTML = '';
     const year = activeCalendarDate.getFullYear();
@@ -620,7 +648,7 @@ window.renderReminders = function() {
     }
 }
 
-window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); };
+window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); updateDashboard(); };
 
 function renderSubscriptions() {
     const subscriptionListEl = document.getElementById('subscription-list');
@@ -705,12 +733,23 @@ function updateDashboard() {
         if (savingsProgressFill) savingsProgressFill.style.width = '100%';
     }
 
-    localStorage.setItem('budget', totalCombinedBaseBudget.toString());
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
-    localStorage.setItem('historyLog', JSON.stringify(historyLog));
-    localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
-    localStorage.setItem('currency', currentCurrency);
+    // ─── STEP 4 (PART 1): SYNC TO FIREBASE DOCUMENT MATRIX OVERRIDE ───
+    const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+    setDoc(doc(db, "student_budgets", userIdentifier), {
+        gpayWalletInitial: gpayWalletInitial,
+        cashWalletInitial: cashWalletInitial,
+        expenses: expenses,
+        subscriptions: subscriptions,
+        historyLog: historyLog,
+        savingsGoals: savingsGoals,
+        remindersList: remindersList,
+        academicFeesList: academicFeesList,
+        targetAllowanceDropDay: targetAllowanceDropDay,
+        loggedIncomes: loggedIncomes,
+        internalTransfers: internalTransfers,
+        currency: currentCurrency
+    }, { merge: true })
+    .catch((error) => console.error("Cloud firestore validation sync failure node: ", error));
 
     calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap);
     generateAIInsights(combinedOutflow, dynamicRollingBudgetCap);
@@ -773,7 +812,7 @@ function renderSavingsGoals() {
     });
 }
 
-window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals)); updateDashboard(); };
+window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); updateDashboard(); };
 
 function analyzeUserHabitsStreaks() {
     const noSpendStreakValue = document.getElementById('no-spend-streak-value');
@@ -1013,14 +1052,13 @@ function renderTransferHistoryLog() {
 
 window.deleteTransferItem = function(id) {
     internalTransfers = internalTransfers.filter(t => t.id !== id);
-    localStorage.setItem('internalTransfers', JSON.stringify(internalTransfers));
     updateDashboard();
     renderTransferHistoryLog();
 };
 
 window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
-window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
-window.deleteIncomeFromLog = function(id) { loggedIncomes = loggedIncomes.filter(i => i.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
+window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
+window.deleteIncomeFromLog = function(id) { loggedIncomes = loggedIncomes.filter(i => i.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
 
 function initChart() {
     const chartEl = document.getElementById('expense-chart'); if (!chartEl) return;

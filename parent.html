@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* =========================================================================
-           ✨ VERTEX PREMIUM PARENT HEADER GLASS SYSTEM
+            ✨ VERTEX PREMIUM PARENT HEADER GLASS SYSTEM
            ========================================================================= */
         .parent-header-premium {
             text-align: center;
@@ -100,6 +100,8 @@
             margin-left: 10px;
         }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body class="dark-theme">
 
@@ -109,10 +111,9 @@
             <div class="parent-mode-badge">👨‍👩‍👦 Parent View Portal</div>
             <h1 class="parent-title-main">Vertex Budget Hub</h1>
             <div class="student-identity-badge">
-                <p>Official Read-Only Financial Statement Overview for <span id="user-display-name" class="student-name-highlight"> SOHIL </span></p>
+                <p>Official Read-Only Financial Statement Overview for <span id="user-display-name" class="student-name-highlight"> STUDENT 🎓 </span></p>
             </div>
         </div>
-       
 
         <div class="glass-card" style="border-top: 4px solid #38bdf8;">
             <h2>👛 Active Wallet Account Balances</h2>
@@ -149,14 +150,32 @@
     </div>
 
     <script>
+        const firebaseConfig = {
+  apiKey: "AIzaSyBMCi07hJv05ks9iJfO1H0DUpsVemyidOw",
+  authDomain: "vertex-budget-hub.firebaseapp.com",
+  projectId: "vertex-budget-hub",
+  storageBucket: "vertex-budget-hub.firebasestorage.app",
+  messagingSenderId: "471027628472",
+  appId: "1:471027628472:web:52a03ec675fb06bf25774d"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
         document.addEventListener("DOMContentLoaded", () => {
-            // Updated to pull the exact userDisplayName set by the dashboard page
-            const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
+            const urlParams = new URLSearchParams(window.location.search);
+            let sharedStudentName = urlParams.get('student');
+
+            if (!sharedStudentName) {
+                sharedStudentName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
+            }
+
             const parentNameDisplay = document.getElementById('user-display-name');
-            
-            if (savedName && parentNameDisplay) {
-                // Extracts the first name, converts to uppercase, and updates the view portal header
-                parentNameDisplay.innerText = " " + savedName.split(' ')[0].toUpperCase() + " 🎓";
+            if (parentNameDisplay) {
+                if (sharedStudentName) {
+                    parentNameDisplay.innerText = " " + sharedStudentName.split(' ')[0].toUpperCase() + " 🎓";
+                } else {
+                    parentNameDisplay.innerText = " STUDENT 🎓";
+                }
             }
 
             const gpayInitial = parseFloat(localStorage.getItem('gpayWalletInitial')) || 0;
