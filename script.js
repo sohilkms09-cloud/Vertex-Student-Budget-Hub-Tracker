@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
     if (document.getElementById('user-display-name')) {
         if (savedName) {
-            document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase() + " 🎓";
+            document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase();
         } else {
             document.getElementById('user-display-name').innerText = "STUDENT ";
         }
