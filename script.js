@@ -46,7 +46,9 @@ var expenseChart = null;
 var trendChart = null;
 var activeCameraStream = null;
 
-var budget = localStorage.getItem('budget') ? parseFloat(localStorage.getItem('budget')) : 0;
+var gpayWalletInitial = localStorage.getItem('gpayWalletInitial') ? parseFloat(localStorage.getItem('gpayWalletInitial')) : 0;
+var cashWalletInitial = localStorage.getItem('cashWalletInitial') ? parseFloat(localStorage.getItem('cashWalletInitial')) : 0;
+
 var expenses = localStorage.getItem('expenses') ? JSON.parse(localStorage.getItem('expenses')) : [];
 var subscriptions = localStorage.getItem('subscriptions') ? JSON.parse(localStorage.getItem('subscriptions')) : [];
 var historyLog = localStorage.getItem('historyLog') ? JSON.parse(localStorage.getItem('historyLog')) : [];
@@ -55,6 +57,7 @@ var remindersList = localStorage.getItem('remindersList') ? JSON.parse(localStor
 var academicFeesList = localStorage.getItem('academicFeesList') ? JSON.parse(localStorage.getItem('academicFeesList')) : [];
 var targetAllowanceDropDay = localStorage.getItem('targetAllowanceDropDay') ? parseInt(localStorage.getItem('targetAllowanceDropDay')) : 1; 
 var loggedIncomes = localStorage.getItem('loggedIncomes') ? JSON.parse(localStorage.getItem('loggedIncomes')) : [];
+var internalTransfers = localStorage.getItem('internalTransfers') ? JSON.parse(localStorage.getItem('internalTransfers')) : [];
 
 var currentCurrency = localStorage.getItem('currency') ? localStorage.getItem('currency') : '₹';
 const studentCategories = ['Hostel/Rent', 'Mess & Food', 'Books & Exams', 'Travel', 'Socials'];
@@ -90,6 +93,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    if (document.getElementById('gpay-initial-input') && gpayWalletInitial > 0) document.getElementById('gpay-initial-input').placeholder = gpayWalletInitial;
+    if (document.getElementById('cash-initial-input') && cashWalletInitial > 0) document.getElementById('cash-initial-input').placeholder = cashWalletInitial;
+
     displayRandomTip();
     setupCategoryDropdown();
     setupInteractionFeatures();
@@ -102,15 +108,33 @@ document.addEventListener("DOMContentLoaded", () => {
     calculateAllowanceCountdownDays();
     renderHeatmap();
     renderIncomeHistoryLog(); 
+    renderTransferHistoryLog();
     initChart();
     initTrendChart();
     setupVoiceRecognition();
     setupReceiptScanner();
 });
 
-// =========================================================================
-// 🛠️ COMPONENT LAYOUT GENERATION INTERFACES
-// =========================================================================
+// Helper parameters to look up balances instantly
+function getRunningBalances() {
+    let calculatedGPayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
+    let calculatedCashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
+
+    const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    calculatedGPayExpenses += totalSubs;
+
+    const calculatedGPayIncome = loggedIncomes.filter(i => i.paymentMethod === 'GPay' || !i.paymentMethod).reduce((sum, i) => sum + i.amount, 0);
+    const calculatedCashIncome = loggedIncomes.filter(i => i.paymentMethod === 'Cash').reduce((sum, i) => sum + i.amount, 0);
+
+    const totalShiftGPayToCash = internalTransfers.filter(t => t.directionType === 'GPayToCash').reduce((sum, t) => sum + t.amountValue, 0);
+    const totalShiftCashToGPay = internalTransfers.filter(t => t.directionType === 'CashToGPay').reduce((sum, t) => sum + t.amountValue, 0);
+
+    return {
+        gpay: gpayWalletInitial + calculatedGPayIncome - calculatedGPayExpenses - totalShiftGPayToCash + totalShiftCashToGPay,
+        cash: cashWalletInitial + calculatedCashIncome - calculatedCashExpenses + totalShiftGPayToCash - totalShiftCashToGPay
+    };
+}
+
 function captureChronologicalTimestamp(dateObject) {
     const calendarDate = dateObject.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const clockTime = dateObject.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -143,6 +167,7 @@ function setupInteractionFeatures() {
     const reminderForm = document.getElementById('reminder-form');
     const academicFeeForm = document.getElementById('academic-fee-form');
     const incomeForm = document.getElementById('income-form-element');
+    const internalTransferForm = document.getElementById('internal-transfer-form');
     const goalForm = document.getElementById('goal-form');
     const setBudgetBtn = document.getElementById('set-budget-btn');
     const autoAllocateBtn = document.getElementById('auto-allocate-btn');
@@ -182,12 +207,21 @@ function setupInteractionFeatures() {
             const targetId = parseInt(quickGoalSelect.value);
             const fundingValue = parseFloat(quickGoalAmount.value) || 0;
             if (fundingValue <= 0) { alert("Please enter a valid deposit value."); return; }
+            
+            // Check current availability bounds before adding goal deposits
+            const currentBalances = getRunningBalances();
+            if (currentBalances.gpay < fundingValue) {
+                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue}, but your GPay balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                return;
+            }
+
             let goalInstance = savingsGoals.find(g => g.id === targetId);
             if (goalInstance) {
                 if (typeof goalInstance.current === 'undefined') goalInstance.current = 0;
                 goalInstance.current += fundingValue;
                 const timestampNode = new Date();
-                expenses.push({ id: Date.now(), name: `💰 Goal Deposit: ${goalInstance.name}`, amount: fundingValue, personalShare: fundingValue, category: "Socials", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: "" });
+                
+                expenses.push({ id: Date.now(), name: `💰 Goal Deposit: ${goalInstance.name}`, amount: fundingValue, personalShare: fundingValue, category: "Socials", paymentMethod: "GPay", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: "" });
                 localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
                 quickGoalAmount.value = '';
                 updateDashboard(); renderExpenses(); renderHeatmap();
@@ -225,10 +259,40 @@ function setupInteractionFeatures() {
             const incName = document.getElementById('income-name').value;
             const incAmount = parseFloat(document.getElementById('income-amount').value) || 0;
             const incType = document.getElementById('income-source-type').value;
+            const incMethod = document.getElementById('income-method').value;
             const timestampNode = new Date();
-            loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode) });
+            loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, paymentMethod: incMethod, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode) });
             localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
             incomeForm.reset(); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog();
+        });
+    }
+    if (internalTransferForm) {
+        internalTransferForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const direction = document.getElementById('transfer-direction').value;
+            const amount = parseFloat(document.getElementById('transfer-amount').value) || 0;
+            if (amount <= 0) { alert("Please input a valid transfer amount."); return; }
+            
+            const currentBalances = getRunningBalances();
+            if (direction === "GPayToCash" && currentBalances.gpay < amount) {
+                alert(`Insufficient GPay Balance! Cannot shift ${currentCurrency}${amount}. Available: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                return;
+            }
+            if (direction === "CashToGPay" && currentBalances.cash < amount) {
+                alert(`Insufficient Hand Cash Balance! Cannot shift ${currentCurrency}${amount}. Available: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                return;
+            }
+
+            internalTransfers.push({
+                id: Date.now(),
+                directionType: direction,
+                amountValue: amount,
+                timestamp: captureChronologicalTimestamp(new Date())
+            });
+            localStorage.setItem('internalTransfers', JSON.stringify(internalTransfers));
+            internalTransferForm.reset();
+            updateDashboard();
+            renderTransferHistoryLog();
         });
     }
     if (goalForm) {
@@ -251,11 +315,32 @@ function setupInteractionFeatures() {
     }
     if (setBudgetBtn) {
         setBudgetBtn.addEventListener('click', () => {
-            const budgetInput = document.getElementById('monthly-budget-input');
-            if (budgetInput && parseFloat(budgetInput.value) > 0) { budget = parseFloat(budgetInput.value); budgetInput.value = ''; updateDashboard(); }
+            const gpayVal = parseFloat(document.getElementById('gpay-initial-input').value) || 0;
+            const cashVal = parseFloat(document.getElementById('cash-initial-input').value) || 0;
+            
+            gpayWalletInitial = gpayVal;
+            cashWalletInitial = cashVal;
+            
+            localStorage.setItem('gpayWalletInitial', gpayWalletInitial);
+            localStorage.setItem('cashWalletInitial', cashWalletInitial);
+            
+            document.getElementById('gpay-initial-input').value = '';
+            document.getElementById('cash-initial-input').value = '';
+            updateDashboard();
         });
     }
-    if (autoAllocateBtn) { autoAllocateBtn.addEventListener('click', () => { const value = parseFloat(prompt("Stipend value:")); if (value > 0) { budget = value * 0.8; updateDashboard(); } }); }
+    if (autoAllocateBtn) { 
+        autoAllocateBtn.addEventListener('click', () => { 
+            const value = parseFloat(prompt("Stipend value:")); 
+            if (value > 0) { 
+                gpayWalletInitial = value * 0.8; 
+                cashWalletInitial = value * 0.2;
+                localStorage.setItem('gpayWalletInitial', gpayWalletInitial);
+                localStorage.setItem('cashWalletInitial', cashWalletInitial);
+                updateDashboard(); 
+            } 
+        }); 
+    }
     if (searchInput) { searchInput.addEventListener('input', renderExpenses); }
     if (currencySelect) {
         currencySelect.addEventListener('change', () => {
@@ -264,23 +349,24 @@ function setupInteractionFeatures() {
         });
     }
     if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); } });
+        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; localStorage.removeItem('loggedIncomes'); localStorage.removeItem('internalTransfers'); localStorage.removeItem('gpayWalletInitial'); localStorage.removeItem('cashWalletInitial'); updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog(); } });
     }
     if (archiveMonthBtn) {
         archiveMonthBtn.addEventListener('click', () => {
-            if (budget <= 0 && expenses.length === 0) { alert("Cannot archive empty space!"); return; }
+            const dynamicRollingBudgetCap = gpayWalletInitial + cashWalletInitial + loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+            if (dynamicRollingBudgetCap <= 0 && expenses.length === 0) { alert("Cannot archive empty space!"); return; }
             const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
             const outflow = expenses.reduce((sum, item) => sum + (item.personalShare || item.amount), 0) + subscriptions.reduce((sum, item) => sum + item.amount, 0);
-            historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, budget) }); 
-            expenses = []; loggedIncomes = []; budget = 0; localStorage.removeItem('loggedIncomes');
-            updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog();
+            historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); 
+            expenses = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; localStorage.removeItem('loggedIncomes'); localStorage.removeItem('internalTransfers'); localStorage.removeItem('gpayWalletInitial'); localStorage.removeItem('cashWalletInitial');
+            updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog();
         });
     }
     if (exportCsvBtn) {
         exportCsvBtn.addEventListener('click', () => {
-            let csvContent = "Type,Timestamp,Description,Category,Value\n";
-            expenses.forEach(e => { csvContent += `"Expense", "${e.timeStamp || 'N/A'}", "${e.name}", "${e.category}", -${e.amount}\n`; });
-            loggedIncomes.forEach(i => { csvContent += `"Income", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", +${i.amount}\n`; });
+            let csvContent = "Type,Timestamp,Description,Category,Method,Value\n";
+            expenses.forEach(e => { csvContent += `"Expense", "${e.timeStamp || 'N/A'}", "${e.name}", "${e.category}", "${e.paymentMethod || 'GPay'}", -${e.amount}\n`; });
+            loggedIncomes.forEach(i => { csvContent += `"Income", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", "${i.paymentMethod || 'GPay'}", +${i.amount}\n`; });
             const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURI(csvContent)); downloadAnchor.setAttribute('download', 'Statements.csv'); downloadAnchor.click();
         });
     }
@@ -291,7 +377,21 @@ function setupInteractionFeatures() {
             let share = totalCostInput; if (document.getElementById('split-bill-checkbox') && document.getElementById('split-bill-checkbox').checked) share = totalCostInput / ((parseInt(roommateTotalCount.value) || 1) + 1);
             let fileAttachment = document.getElementById('expense-attachment-file');
             let url = fileAttachment && fileAttachment.files.length > 0 ? URL.createObjectURL(fileAttachment.files[0]) : "";
-            expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: url });
+            
+            const methodInput = document.getElementById('expense-method').value;
+
+            // FIX: INSUFFICIENT BALANCE GUARD VALIDATION CHECK 
+            const currentBalances = getRunningBalances();
+            if (methodInput === "GPay" && currentBalances.gpay < share) {
+                alert(`Insufficient GPay Wallet Balance! Cannot commit ${currentCurrency}${share.toFixed(2)} expense. Available asset: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                return;
+            }
+            if (methodInput === "Cash" && currentBalances.cash < share) {
+                alert(`Insufficient Hand Cash Wallet Balance! Cannot commit ${currentCurrency}${share.toFixed(2)} expense. Available portfolio: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                return;
+            }
+
+            expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, paymentMethod: methodInput, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: url });
             expenseForm.reset(); if (document.getElementById('roommate-count-drawer')) document.getElementById('roommate-count-drawer').style.display = 'none';
             updateDashboard(); renderExpenses(); renderHeatmap();
         });
@@ -442,8 +542,13 @@ function updateDashboard() {
     const totalSubscriptionsEl = document.getElementById('total-subscriptions');
     const roommatesOweTotal = document.getElementById('roommates-owe-total');
 
+    const gpayWalletDisplay = document.getElementById('gpay-wallet-display');
+    const cashWalletDisplay = document.getElementById('cash-wallet-display');
+
     const cumulativeExtraIncome = loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    const dynamicRollingBudgetCap = budget + cumulativeExtraIncome;
+    const totalCombinedBaseBudget = gpayWalletInitial + cashWalletInitial;
+    const dynamicRollingBudgetCap = totalCombinedBaseBudget + cumulativeExtraIncome;
+    
     const totalSpent = expenses.reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0); 
     const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
     const combinedOutflow = totalSpent + totalSubs;
@@ -455,6 +560,11 @@ function updateDashboard() {
     if (totalExpensesEl) totalExpensesEl.innerText = `${currentCurrency}${combinedOutflow.toFixed(2)}`;
     if (balanceLeftEl) balanceLeftEl.innerText = `${currentCurrency}${balance.toFixed(2)}`;
     if (totalSubscriptionsEl) totalSubscriptionsEl.innerText = `${currentCurrency}${totalSubs.toFixed(2)}`;
+
+    // Calculate current running values using shared helper method logic
+    const currentBalances = getRunningBalances();
+    if (gpayWalletDisplay) gpayWalletDisplay.innerText = `${currentCurrency}${currentBalances.gpay.toFixed(2)}`;
+    if (cashWalletDisplay) cashWalletDisplay.innerText = `${currentCurrency}${currentBalances.cash.toFixed(2)}`;
 
     const budgetCard = document.getElementById('budget-card');
     if (budgetCard) {
@@ -484,7 +594,7 @@ function updateDashboard() {
         if (savingsProgressFill) savingsProgressFill.style.width = '100%';
     }
 
-    localStorage.setItem('budget', budget);
+    localStorage.setItem('budget', totalCombinedBaseBudget.toString());
     localStorage.setItem('expenses', JSON.stringify(expenses));
     localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
     localStorage.setItem('historyLog', JSON.stringify(historyLog));
@@ -552,6 +662,8 @@ function renderSavingsGoals() {
     });
 }
 
+window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals)); updateDashboard(); };
+
 function analyzeUserHabitsStreaks() {
     const noSpendStreakValue = document.getElementById('no-spend-streak-value');
     if (!noSpendStreakValue) return;
@@ -603,11 +715,19 @@ function runScannerLogic(isValidBill) {
     const scannerLaser = document.getElementById('scanner-laser');
     const scannerLogStatus = document.getElementById('scanner-log-status');
     if (!scannerLaser || !scannerLogStatus) return;
+    
+    // Check dynamic bounds beforehand
+    const currentBalances = getRunningBalances();
+    if (currentBalances.gpay < 850) {
+        alert("OCR Scanner failed: Insufficient GPay Balance to auto-allocate Mock Scanned Books Receipt (Requires ₹850.00)");
+        return;
+    }
+
     scannerLaser.style.display = 'block'; scannerLaser.style.animation = 'scanningMotion 2s infinite linear'; scannerLogStatus.style.display = 'block'; scannerLogStatus.innerText = "🔍 OCR Scanner: Decoding structures...";
     setTimeout(() => {
         scannerLaser.style.display = 'none';
         const timestampNode = new Date();
-        expenses.push({ id: Date.now(), name: `[OCR Scan] Text Books Bundle`, amount: 850, personalShare: 850, category: "Books & Exams", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: mockReceiptImages[Math.floor(Math.random() * mockReceiptImages.length)] });
+        expenses.push({ id: Date.now(), name: `[OCR Scan] Text Books Bundle`, amount: 850, personalShare: 850, category: "Books & Exams", paymentMethod: "GPay", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: mockReceiptImages[Math.floor(Math.random() * mockReceiptImages.length)] });
         scannerLogStatus.innerText = `✅ Extracted Success!`;
         updateDashboard(); renderExpenses(); renderHeatmap();
     }, 2500);
@@ -639,7 +759,6 @@ function calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap)
     else healthScoreStatus.innerText = "Risk Alert 🚨";
 }
 
-// FIXED: AUTOMATIC AUDIO TURNOFF SEQUENCE INTERCEPTOR LAYER
 function setupVoiceRecognition() {
     const voiceStartBtn = document.getElementById('voice-start-btn');
     const voiceStatus = document.getElementById('voice-status');
@@ -657,19 +776,26 @@ function setupVoiceRecognition() {
             const result = event.results[0][0].transcript.toLowerCase(); 
             if (voiceStatus) voiceStatus.innerText = `Heard: "${result}"`; 
             
-            // Auto turn off microphone directly after parsing text phrase structure
             recognition.stop();
             
             const matches = result.match(/\d+/); 
             if (!matches) return;
             
+            const parsedVal = parseFloat(matches[0]);
+            const currentBalances = getRunningBalances();
+            if (currentBalances.gpay < parsedVal) {
+                alert(`Voice Entry Rejected: Insufficient GPay funds to auto-allocate parsed asset expenditure (${currentCurrency}${parsedVal})`);
+                return;
+            }
+
             const timestampNode = new Date(); 
             expenses.push({ 
                 id: Date.now(), 
                 name: "Voice Entry Item", 
-                amount: parseFloat(matches[0]), 
-                personalShare: parseFloat(matches[0]), 
+                amount: parsedVal, 
+                personalShare: parsedVal, 
                 category: "Socials", 
+                paymentMethod: "GPay", 
                 day: timestampNode.getDate(), 
                 timeStamp: captureChronologicalTimestamp(timestampNode) 
             }); 
@@ -706,10 +832,12 @@ function renderHeatmap() {
     }
 }
 
+// 📜 RE-ENGINEERED COLUMN ACCOUNT TRACKING LEDGER LIST WITH DISTINCT WAY MARKINGS
 function renderExpenses() {
     const expenseList = document.getElementById('expense-list');
     const searchInput = document.getElementById('search-input');
     if (!expenseList) return; expenseList.innerHTML = ''; const query = searchInput.value.toLowerCase(); let timeline = [];
+    
     expenses.forEach(e => timeline.push({ ...e, type: 'expense', sort: e.id }));
     loggedIncomes.forEach(i => timeline.push({ ...i, type: 'income', category: i.typeLabel, personalShare: i.amount, sort: i.id }));
     timeline.sort((a, b) => b.sort - a.sort);
@@ -717,16 +845,33 @@ function renderExpenses() {
     if (timeline.length === 0) { expenseList.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:15px;">No logs.</p>`; return; }
     timeline.forEach(item => {
         if (query && !item.name.toLowerCase().includes(query) && !item.category.toLowerCase().includes(query)) return;
+        
         const li = document.createElement('li');
+        
+        // 3. Clear separate structural column styling indicators for tracking settlement accounts
+        const walletMethod = item.paymentMethod || "GPay";
+        const methodBadgeColor = walletMethod === "GPay" ? "#38bdf8" : "#f59e0b";
+        const methodBadgeStyle = `background: rgba(255,255,255,0.04); border-left: 3px solid ${methodBadgeColor}; padding: 3px 8px; border-radius: 4px; font-size:11px; font-weight:700; color:var(--text-main); margin-left:8px; display:inline-block;`;
+        const accountColumnBadge = `<span style="${methodBadgeStyle}">${walletMethod === "GPay" ? "📱 GPay" : "💵 Cash"}</span>`;
+        
         if (item.type === 'expense') {
             const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
-            li.innerHTML = `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${item.timeStamp}</span><strong>${item.name}</strong> <small>(${item.category})</small> ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
+            li.innerHTML = `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${item.timeStamp}</span><strong>${item.name}</strong> <small>(${item.category})</small> ${accountColumnBadge} ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
         } else {
-            li.innerHTML = `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${item.timeStamp}</span><strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong></span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
+            li.innerHTML = `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${item.timeStamp}</span><strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong> ${accountColumnBadge}</span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
         }
         expenseList.appendChild(li);
     });
 }
+
+window.openReceiptLightbox = function(url) {
+    const target = document.getElementById('lightbox-render-target');
+    const lightbox = document.getElementById('receipt-lightbox');
+    if (target && lightbox) {
+        target.src = url;
+        lightbox.style.display = 'flex';
+    }
+};
 
 function renderIncomeHistoryLog() {
     const incomeHistoryListEl = document.getElementById('income-history-list');
@@ -734,10 +879,39 @@ function renderIncomeHistoryLog() {
     if (loggedIncomes.length === 0) { incomeHistoryListEl.innerHTML = `<p style="color:var(--text-muted); font-size:12px; text-align:center;">No custom logs.</p>`; return; }
     loggedIncomes.forEach(item => {
         const li = document.createElement('li'); li.style.marginBottom = '6px';
-        li.innerHTML = `<div><strong>${item.name}</strong><br><small style="color:#06b6d4;">${item.timeStamp}</small></div><div><span style="color:var(--success);">+${currentCurrency}${item.amount.toFixed(2)}</span> <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})">❌</button></div>`;
+        const methodDisplay = item.paymentMethod ? ` [${item.paymentMethod}]` : '';
+        li.innerHTML = `<div><strong>${item.name}</strong><br><small style="color:#06b6d4;">${item.timeStamp}${methodDisplay}</small></div><div><span style="color:var(--success);">+${currentCurrency}${item.amount.toFixed(2)}</span> <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})">❌</button></div>`;
         incomeHistoryListEl.appendChild(li);
     });
 }
+
+// 2. NEW FIX: RENDER INTERNAL WALLET MONEY SHIFTS HISTORICAL LEDGERS
+function renderTransferHistoryLog() {
+    const transferHistoryListEl = document.getElementById('transfer-history-list');
+    if (!transferHistoryListEl) return;
+    transferHistoryListEl.innerHTML = '';
+    if (internalTransfers.length === 0) {
+        transferHistoryListEl.innerHTML = `<p style="color:var(--text-muted); font-size:11px; text-align:center; padding:5px;">No transfer movements logged yet.</p>`;
+        return;
+    }
+    internalTransfers.forEach(trans => {
+        const li = document.createElement('li');
+        li.style.padding = '8px 12px';
+        li.style.marginBottom = '4px';
+        li.style.borderLeft = '3px solid #4f46e5';
+        
+        const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
+        li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
+        transferHistoryListEl.appendChild(li);
+    });
+}
+
+window.deleteTransferItem = function(id) {
+    internalTransfers = internalTransfers.filter(t => t.id !== id);
+    localStorage.setItem('internalTransfers', JSON.stringify(internalTransfers));
+    updateDashboard();
+    renderTransferHistoryLog();
+};
 
 window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
 window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes)); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };

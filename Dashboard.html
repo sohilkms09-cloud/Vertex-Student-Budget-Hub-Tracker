@@ -52,6 +52,21 @@
                 </div>
             </div>
 
+            <div class="glass-card" style="border-top: 4px solid var(--accent);">
+                <h2>👛 Live Wallet Accounts Balance</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px; margin-bottom: 16px;">Real-time automated status of your liquid cash funds across primary interfaces.</p>
+                <div class="dashboard-grid" style="margin-bottom: 0;">
+                    <div class="wallet-sub-capsule" style="border-left: 4px solid #38bdf8;">
+                        <span class="sub-card-label">📱 GPay Balance</span>
+                        <h4 id="gpay-wallet-display">₹0.00</h4>
+                    </div>
+                    <div class="wallet-sub-capsule" style="border-left: 4px solid #f59e0b;">
+                        <span class="sub-card-label">💵 Hand Cash Balance</span>
+                        <h4 id="cash-wallet-display">₹0.00</h4>
+                    </div>
+                </div>
+            </div>
+
             <div class="glass-card allowance-countdown-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                     <div>
@@ -70,11 +85,19 @@
             </div>
 
             <div class="glass-card">
-                <h2>Set Initial Monthly Allowance Baseline</h2>
-                <div class="input-group">
-                    <input type="number" id="monthly-budget-input" placeholder="Enter base monthly allowance (e.g. 10000)">
-                    <button id="set-budget-btn">Lock Budget</button>
+                <h2>Set Initial Starting Balances</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px; margin-bottom: 12px;">Initialize your baseline reserves for the active rolling track phase.</p>
+                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                    <div>
+                        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">GPay Balance Target</label>
+                        <input type="number" id="gpay-initial-input" placeholder="e.g. 5000">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; color:var(--text-muted); display:block; margin-bottom:4px;">In-Hand Cash Target</label>
+                        <input type="number" id="cash-initial-input" placeholder="e.g. 2000">
+                    </div>
                 </div>
+                <button id="set-budget-btn" style="margin-top: 14px;">Lock Wallet Baselines</button>
                 <button id="auto-allocate-btn" style="background: rgba(255,255,255,0.05); border: 1px dashed var(--accent); color: #a5b4fc; margin-top: 10px; font-size: 13px; padding: 8px; width: 100%;">
                     💡 Don't know your limit? Click to Auto-Allocate via 50/30/20 rule based on earnings
                 </button>
@@ -160,7 +183,13 @@
                     <form id="expense-form-element" class="expense-vertical-form">
                         <input type="text" id="expense-name" placeholder="Item description (e.g., Books)" required>
                         <input type="number" id="expense-amount" placeholder="Cost Amount" required>
+                        
                         <select id="expense-category" class="select-dropdown-box"></select>
+                        
+                        <select id="expense-method" class="select-dropdown-box" required>
+                            <option value="GPay">📱 GPay / Online Asset</option>
+                            <option value="Cash">💵 Hand Cash Portfolio</option>
+                        </select>
                         
                         <div class="splitter-interactive-row">
                             <label class="custom-checkbox-wrapper">
@@ -194,10 +223,34 @@
                             <option value="Stipend/Scholarship">🎓 Scholarship / Stipend Bonus</option>
                             <option value="Other Inflow">💵 Miscellaneous Cash Influx</option>
                         </select>
+                        
+                        <select id="income-method" class="select-dropdown-box" required>
+                            <option value="GPay">📱 Deposit Directly to GPay</option>
+                            <option value="Cash">💵 Hold as Physical In-Hand Cash</option>
+                        </select>
+                        
                         <button type="submit" style="background: var(--success);">Inject Cash Into Budget</button>
                     </form>
 
-                    <div class="income-history-wrapper" style="border-top: 1px dashed var(--glass-border); padding-top: 15px;">
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--glass-border);">
+                        <h3 style="font-size: 13px; font-weight: 700; color: #fbbf24; text-transform: uppercase;">🔄 Internal Wallet Money Transfer</h3>
+                        <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">Withdraw ATM cash from bank to hand or vice-versa without marking it as an expense.</p>
+                        <form id="internal-transfer-form" class="expense-vertical-form">
+                            <select id="transfer-direction" class="select-dropdown-box">
+                                <option value="GPayToCash">📱 GPay Bank Account ➔ 💵 Liquid Hand Cash</option>
+                                <option value="CashToGPay">💵 Liquid Hand Cash ➔ 📱 GPay Bank Account</option>
+                            </select>
+                            <input type="number" id="transfer-amount" placeholder="Transfer Value Amount" required>
+                            <button type="submit" style="background: #4f46e5;">Execute Internal Shift</button>
+                        </form>
+                        
+                        <div style="margin-top: 15px;">
+                            <h4 style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">📜 Transfer History</h4>
+                            <ul id="transfer-history-list" class="ledger-scroller-view" style="max-height: 120px; margin-top: 5px;"></ul>
+                        </div>
+                    </div>
+
+                    <div class="income-history-wrapper" style="border-top: 1px dashed var(--glass-border); padding-top: 15px; margin-top: 20px;">
                         <h3 style="font-size: 13px; font-weight: 700; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">💵 Cash Injection Log</h3>
                         <ul id="income-history-list" class="ledger-scroller-view" style="max-height: 150px;"></ul>
                     </div>
