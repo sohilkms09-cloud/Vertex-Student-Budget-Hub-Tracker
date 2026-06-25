@@ -108,14 +108,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
     if (document.getElementById('user-display-name')) {
         if (savedName) {
-            document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase();
+            document.getElementById('user-display-name').innerText = "🎓 " + savedName.split(' ')[0].toUpperCase();
         } else {
-            document.getElementById('user-display-name').innerText = "STUDENT ";
+            document.getElementById('user-display-name').innerText = "🎓 STUDENT";
         }
     }
 
-    // ─── STEP 4 (PART 2): INITIALIZE DATA FROM FIREBASE ───
-    const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+    // Prioritize localStorage to preserve login states safely
+    const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
     const docRef = doc(db, "student_budgets", userIdentifier);
 
     try {
@@ -147,9 +147,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const logoutBtn = document.getElementById('google-logout-trigger-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
-            sessionStorage.removeItem('userAuthenticated');
-            sessionStorage.removeItem('userEmail');
-            sessionStorage.removeItem('userDisplayName');
+            sessionStorage.clear();
+            localStorage.clear();
             window.location.replace('index.html');
         });
     }
@@ -245,8 +244,11 @@ function setupInteractionFeatures() {
     if (generateParentUrlBtn) {
         generateParentUrlBtn.addEventListener('click', () => {
             const rawName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || "Student";
+            const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
+            
             const cleanName = encodeURIComponent(rawName.trim());
-            const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}`;
+            const cleanEmail = encodeURIComponent(rawEmail.trim());
+            const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}&id=${cleanEmail}`;
             
             navigator.clipboard.writeText(parentUrlLink).then(() => {
                 alert("Parent Portal Link copied to clipboard! Share this URL with your parents so they can access your simplified statement page.");
@@ -465,23 +467,18 @@ function setupInteractionFeatures() {
             updateDashboard();
         });
     }
-   if (autoAllocateBtn) { 
+    if (autoAllocateBtn) { 
         autoAllocateBtn.addEventListener('click', () => { 
             const value = parseFloat(prompt("Enter your total monthly earnings / stipend amount to calculate baseline limits:")); 
             if (value > 0) { 
-                // 50% for Needs (Allocated to GPay as primary spending pool)
-                // 30% for Wants (Allocated to Cash)
-                // 20% for Savings / Investments
                 gpayWalletInitial = value * 0.50; 
                 cashWalletInitial = value * 0.30;
                 
                 alert(`✨ 50/30/20 Rule Applied!\n\n📋 Allocation Strategy:\n• GPay Wallet (50% Needs Baseline): ${currentCurrency}${gpayWalletInitial.toFixed(2)}\n• Hand Cash Pool (30% Wants Baseline): ${currentCurrency}${cashWalletInitial.toFixed(2)}\n• Retained Reserve (20% Savings Target): ${currentCurrency}${(value * 0.20).toFixed(2)}`);
                 
-                // Clear the manual entry input placeholders to show clean updates
                 if (document.getElementById('gpay-initial-input')) document.getElementById('gpay-initial-input').placeholder = gpayWalletInitial.toFixed(0);
                 if (document.getElementById('cash-initial-input')) document.getElementById('cash-initial-input').placeholder = cashWalletInitial.toFixed(0);
                 
-                // Fire application lifecycle re-draw pipelines
                 updateDashboard(); 
                 renderExpenses(); 
                 renderHeatmap();
@@ -512,7 +509,7 @@ function setupInteractionFeatures() {
         clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog(); } });
     }
     if (archiveMonthBtn) {
-        archiveMonthBtn.addEventListener('click', () => {
+        document.getElementById('archive-month-btn').addEventListener('click', () => {
             const dynamicRollingBudgetCap = gpayWalletInitial + cashWalletInitial + loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
             if (dynamicRollingBudgetCap <= 0 && expenses.length === 0) { alert("Cannot archive empty space!"); return; }
             const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
@@ -749,8 +746,7 @@ function updateDashboard() {
         if (savingsProgressFill) savingsProgressFill.style.width = '100%';
     }
 
-    // ─── STEP 4 (PART 1): SYNC TO FIREBASE DOCUMENT MATRIX OVERRIDE ───
-    const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+    const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
     setDoc(doc(db, "student_budgets", userIdentifier), {
         gpayWalletInitial: gpayWalletInitial,
         cashWalletInitial: cashWalletInitial,
