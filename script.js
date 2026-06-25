@@ -72,7 +72,6 @@ const mockReceiptImages = [
     "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
 ];
 
-// Helper utility to convert a selected local image file into a base64 encoded URL data block for standalone offline persistence
 function parseFileAsDataUrl(fileInputElement) {
     return new Promise((resolve) => {
         if (!fileInputElement || fileInputElement.files.length === 0) {
@@ -91,9 +90,19 @@ function parseFileAsDataUrl(fileInputElement) {
 document.addEventListener("DOMContentLoaded", () => {
     if (!checkNavigationAccessRights()) return;
 
-    const savedName = sessionStorage.getItem('userDisplayName');
-    if (savedName && document.getElementById('user-display-name')) {
-        document.getElementById('user-display-name').innerText = savedName.split(' ')[0] + " 🎓";
+    // Fixed dynamic upper-case name visualization bug mapping framework directly here
+    const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
+    if (document.getElementById('user-display-name')) {
+        if (savedName) {
+            document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase() + " 🎓";
+        } else {
+            document.getElementById('user-display-name').innerText = "STUDENT 🎓";
+        }
+    }
+
+    const currencySelect = document.getElementById('currency-select');
+    if (currencySelect) {
+        currencySelect.value = currentCurrency;
     }
 
     const logoutBtn = document.getElementById('google-logout-trigger-btn');
@@ -128,9 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupReceiptScanner();
 });
 
-// =========================================================================
-// 👛 CALCULATE REAL-TIME CURRENT WALLET ACCOUNT ASSETS ACCURATELY
-// =========================================================================
 function getRunningBalances() {
     let calculatedGPayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
     let calculatedCashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
@@ -436,10 +442,21 @@ function setupInteractionFeatures() {
         }); 
     }
     if (searchInput) { searchInput.addEventListener('input', renderExpenses); }
+    
     if (currencySelect) {
         currencySelect.addEventListener('change', () => {
             currentCurrency = currencySelect.value;
-            updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); if (trendChart) updateTrendChart();
+            localStorage.setItem('currency', currentCurrency);
+            
+            try { updateDashboard(); } catch(e) { console.error(e); }
+            try { renderExpenses(); } catch(e) { console.error(e); }
+            try { renderSubscriptions(); } catch(e) { console.error(e); }
+            try { renderHeatmap(); } catch(e) { console.error(e); }
+            try { renderReminders(); } catch(e) { console.error(e); }
+            try { renderAcademicFeesTimeline(); } catch(e) { console.error(e); }
+            try { renderIncomeHistoryLog(); } catch(e) { console.error(e); }
+            try { renderTransferHistoryLog(); } catch(e) { console.error(e); }
+            try { if (trendChart) updateTrendChart(); } catch(e) { console.error(e); }
         });
     }
     if (clearAllBtn) {
@@ -867,7 +884,6 @@ function setupVoiceRecognition() {
             if (voiceStatus) voiceStatus.innerText = `Heard: "${result}"`; 
             
             recognition.stop();
-            
             const matches = result.match(/\d+/); 
             if (!matches) return;
             
@@ -986,7 +1002,6 @@ function renderTransferHistoryLog() {
         li.style.padding = '8px 12px';
         li.style.marginBottom = '4px';
         li.style.borderLeft = '3px solid #4f46e5';
-        
         const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
         li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
         transferHistoryListEl.appendChild(li);
@@ -1026,9 +1041,3 @@ function initTrendChart() {
 }
 
 window.updateTrendChart = function() { if (trendChart) { trendChart.data.labels = historyLog.map(i => i.label); trendChart.data.datasets[0].data = historyLog.map(i => i.score); trendChart.data.datasets[1].data = historyLog.map(i => i.spent); trendChart.update(); } }
-// Locate this block inside script.js:
-const savedName = sessionStorage.getItem('userDisplayName');
-if (savedName && document.getElementById('user-display-name')) {
-    // Modified with .toUpperCase() here:
-     " 🎓"+" " + document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase();
-}
