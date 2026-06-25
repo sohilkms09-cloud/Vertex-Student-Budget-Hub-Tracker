@@ -106,13 +106,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!checkNavigationAccessRights()) return;
 
     const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
-    if (document.getElementById('user-display-name')) {
-        if (savedName) {
-            document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase() + " 🎓";
-        } else {
-            document.getElementById('user-display-name').innerText = "STUDENT 🎓";
-        }
+    iif (document.getElementById('user-display-name')) {
+    if (savedName) {
+        document.getElementById('user-display-name').innerText = "🎓 " + savedName.split(' ')[0].toUpperCase();
+    } else {
+        document.getElementById('user-display-name').innerText = "🎓 STUDENT";
     }
+}
 
     // ─── STEP 4 (PART 2): INITIALIZE DATA FROM FIREBASE ───
     const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
