@@ -96,18 +96,40 @@ const mockReceiptImages = [
     "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
 ];
 
+// Optimized compression pipeline to parse files cleanly into a valid, flat string
 function parseFileAsDataUrl(fileInputElement) {
     return new Promise((resolve) => {
         if (!fileInputElement || fileInputElement.files.length === 0) {
             resolve("");
             return;
         }
+        const file = fileInputElement.files[0];
         const reader = new FileReader();
-        reader.onload = function(e) { 
-            // Explicitly cast result to string to prevent nested object mutations in Firestore
-            resolve(String(e.target.result || "")); 
+        
+        reader.onload = function(e) {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = function() {
+                // Initialize canvas to safely compress high-res mobile upload data fields
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // Define standard budget document size boundaries
+                const max_width = 600;
+                const scale = max_width / img.width;
+                canvas.width = max_width;
+                canvas.height = img.height * scale;
+                
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                // Convert down directly to a compressed, standard web string format
+                const cleanCompressedString = canvas.toDataURL('image/jpeg', 0.6);
+                resolve(String(cleanCompressedString));
+            };
+            img.onerror = function() {
+                resolve("");
+            };
         };
-        reader.readAsDataURL(fileInputElement.files[0]);
+        reader.readAsDataURL(file);
     });
 }
 
@@ -1051,7 +1073,7 @@ function renderTransferHistoryLog() {
         li.style.borderLeft = '3px solid #4f46e5';
         const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
         li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
-        transferHistoryListEl.appendChild(li); // Fixed: Appends list node variable correctly
+        transferHistoryListEl.appendChild(li); 
     });
 }
 
