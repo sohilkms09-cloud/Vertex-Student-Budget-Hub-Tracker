@@ -465,14 +465,30 @@ function setupInteractionFeatures() {
             updateDashboard();
         });
     }
-    if (autoAllocateBtn) { 
+   if (autoAllocateBtn) { 
         autoAllocateBtn.addEventListener('click', () => { 
-            const value = parseFloat(prompt("Stipend value:")); 
+            const value = parseFloat(prompt("Enter your total monthly earnings / stipend amount to calculate baseline limits:")); 
             if (value > 0) { 
-                gpayWalletInitial = value * 0.8; 
-                cashWalletInitial = value * 0.2;
+                // 50% for Needs (Allocated to GPay as primary spending pool)
+                // 30% for Wants (Allocated to Cash)
+                // 20% for Savings / Investments
+                gpayWalletInitial = value * 0.50; 
+                cashWalletInitial = value * 0.30;
+                
+                alert(`✨ 50/30/20 Rule Applied!\n\n📋 Allocation Strategy:\n• GPay Wallet (50% Needs Baseline): ${currentCurrency}${gpayWalletInitial.toFixed(2)}\n• Hand Cash Pool (30% Wants Baseline): ${currentCurrency}${cashWalletInitial.toFixed(2)}\n• Retained Reserve (20% Savings Target): ${currentCurrency}${(value * 0.20).toFixed(2)}`);
+                
+                // Clear the manual entry input placeholders to show clean updates
+                if (document.getElementById('gpay-initial-input')) document.getElementById('gpay-initial-input').placeholder = gpayWalletInitial.toFixed(0);
+                if (document.getElementById('cash-initial-input')) document.getElementById('cash-initial-input').placeholder = cashWalletInitial.toFixed(0);
+                
+                // Fire application lifecycle re-draw pipelines
                 updateDashboard(); 
-            } 
+                renderExpenses(); 
+                renderHeatmap();
+                if (expenseChart) updateChartData();
+            } else if (value <= 0 || isNaN(value)) {
+                alert("Please input a valid positive currency amount to configure baseline thresholds.");
+            }
         }); 
     }
     if (searchInput) { searchInput.addEventListener('input', renderExpenses); }
