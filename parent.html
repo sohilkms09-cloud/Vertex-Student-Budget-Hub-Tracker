@@ -7,15 +7,90 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Custom tweaks just for the parent dashboard view */
-        .parent-header {
+        /* =========================================================================
+           ✨ VERTEX PREMIUM PARENT HEADER GLASS SYSTEM
+           ========================================================================= */
+        .parent-header-premium {
             text-align: center;
-            padding: 20px;
-            background: rgba(56, 189, 248, 0.08);
+            padding: 30px 20px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.07) 0%, rgba(139, 92, 246, 0.03) 100%);
             border: 1px solid rgba(56, 189, 248, 0.2);
-            border-radius: 14px;
-            margin-bottom: 30px;
+            border-radius: 20px;
+            margin-bottom: 35px;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                        inset 0 0 20px rgba(56, 189, 248, 0.05);
+            overflow: hidden;
         }
+
+        /* Ambient subtle light leak behind header */
+        .parent-header-premium::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 100px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 75%);
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .parent-title-main {
+            font-size: 2.6rem;
+            font-weight: 800;
+            margin: 0 0 6px 0;
+            letter-spacing: -1.5px;
+            background: linear-gradient(135deg, #ffffff 20%, #38bdf8 70%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 4px 10px rgba(56, 189, 248, 0.15));
+        }
+
+        .parent-mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 12px rgba(56, 189, 248, 0.1);
+        }
+
+        .student-identity-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 6px 16px;
+            border-radius: 12px;
+            margin-top: 5px;
+        }
+
+        .student-identity-badge p {
+            margin: 0;
+            font-size: 13.5px;
+            color: var(--text-muted);
+        }
+
+        .student-name-highlight {
+            color: #ffffff;
+            font-weight: 700;
+            position: relative;
+            background: linear-gradient(to right, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding-bottom: 1px;
+            border-bottom: 1px dashed rgba(56, 189, 248, 0.4);
+        }
+
         .statement-badge {
             display: inline-block;
             padding: 4px 10px;
@@ -31,9 +106,15 @@
 
     <div class="glass-container" style="max-width: 800px;">
         
-        <div class="parent-header">
-            <h1 style="background: linear-gradient(to right, #ffffff, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px;">👨‍👩‍👦 Vertex Parent Portal</h1>
-            <p style="color: var(--text-muted); font-size: 14px; margin: 0;">Official Read-Only Financial Statement Overview for Sohil 🎓</p>
+        <div class="parent-header-premium">
+            <div class="parent-mode-badge">
+                👨‍👩‍👦 Parent View Portal
+            </div>
+            <h1 class="parent-title-main">Vertex Budget Hub</h1>
+            
+            <div class="student-identity-badge">
+                <p>Official  Read-Only  Financial  Statement  Overview  for   <span class="student-name-highlight" style="margin-left: 4px;">   SOHIL </span></p>
+            </div>
         </div>
 
         <div class="glass-card" style="border-top: 4px solid #38bdf8;">
@@ -52,19 +133,26 @@
 
         <div class="glass-card" style="border-top: 4px solid var(--accent);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h2 style="margin: 0;">Complete Transaction & Activity History</h2>
+                <h2>Complete Transaction & Activity History</h2>
                 <span style="font-size: 12px; color: var(--text-muted);">Real-Time Sync</span>
             </div>
-            
-            <ul id="parent-global-history-list" class="ledger-scroller-view" style="max-height: 600px; gap: 10px;">
-                </ul>
+            <ul id="parent-global-history-list" class="ledger-scroller-view" style="max-height: 600px; gap: 10px;"></ul>
         </div>
 
     </div>
 
+    <div id="receipt-lightbox" class="lightbox-overlay" style="display: none;">
+        <div class="lightbox-content-box">
+            <span id="close-lightbox-btn" class="lightbox-close-cross">×</span>
+            <h3>📄 Attached Bill Document Preview</h3>
+            <div class="lightbox-image-viewport">
+                <img id="lightbox-render-target" src="" alt="Attached document view">
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            // Read tracking data structures out from shared localStorage matrices
             const gpayInitial = parseFloat(localStorage.getItem('gpayWalletInitial')) || 0;
             const cashInitial = parseFloat(localStorage.getItem('cashWalletInitial')) || 0;
             const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
@@ -73,12 +161,29 @@
             const internalTransfers = JSON.parse(localStorage.getItem('internalTransfers')) || [];
             const currentCurrency = localStorage.getItem('currency') || '₹';
 
-            // Calculate Running Balances
+            const lightbox = document.getElementById('receipt-lightbox');
+            const target = document.getElementById('lightbox-render-target');
+            
+            window.openReceiptLightbox = function(url) {
+                if (target && lightbox) {
+                    target.src = url;
+                    lightbox.style.display = 'flex';
+                }
+            };
+            
+            if (document.getElementById('close-lightbox-btn')) {
+                document.getElementById('close-lightbox-btn').addEventListener('click', () => { lightbox.style.display = 'none'; });
+            }
+            lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = 'none'; });
+
             let gpayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
             let cashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
             
-            const totalSubs = subscriptions.reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-            gpayExpenses += totalSubs; // Subscriptions auto-deduct from digital accounts
+            const totalGPaySubs = subscriptions.filter(s => s.paymentMethod === 'GPay' || !s.paymentMethod).reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+            const totalCashSubs = subscriptions.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+            
+            gpayExpenses += totalGPaySubs;
+            cashExpenses += totalCashSubs;
 
             const gpayIncome = loggedIncomes.filter(i => i.paymentMethod === 'GPay' || !i.paymentMethod).reduce((sum, i) => sum + i.amount, 0);
             const cashIncome = loggedIncomes.filter(i => i.paymentMethod === 'Cash').reduce((sum, i) => sum + i.amount, 0);
@@ -89,28 +194,35 @@
             const finalGPay = gpayInitial + gpayIncome - gpayExpenses - transfersToCash + transfersToGPay;
             const finalCash = cashInitial + cashIncome - cashExpenses + transfersToCash - transfersToGPay;
 
-            // Update Header Displays
             document.getElementById('parent-gpay-display').innerText = currentCurrency + finalGPay.toFixed(2);
             document.getElementById('parent-cash-display').innerText = currentCurrency + finalCash.toFixed(2);
 
-            // Compile All Activities Into One Chronological Timeline
             let timeline = [];
 
             expenses.forEach(e => {
+                const receiptBtn = e.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${e.receiptUrl}')">📄 View Receipt</button>` : '';
                 timeline.push({
                     sortKey: e.id,
-                    timestamp: e.timeStamp,
-                    htmlContent: `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${e.timeStamp}</span><strong>${e.name}</strong> <small>(${e.category})</small></span>
-                                  <span><span class="statement-badge" style="background:rgba(239,68,68,0.15); color:var(--danger); font-size:10px;">Expense via ${e.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${e.amount.toFixed(2)}</strong></span>`
+                    htmlContent: `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${e.timeStamp}</span><strong>${e.name}</strong> <small>(${e.category})</small> ${receiptBtn}</span>
+                                  <span><span class="statement-badge" style="background:rgba(239,68,68,0.15); color:var(--danger); font-size:10px;">via ${e.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${e.amount.toFixed(2)}</strong></span>`
                 });
             });
 
             loggedIncomes.forEach(i => {
+                const receiptBtn = i.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${i.receiptUrl}')">📄 View Doc</button>` : '';
                 timeline.push({
                     sortKey: i.id,
-                    timestamp: i.timeStamp,
-                    htmlContent: `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${i.timeStamp}</span><strong style="color:#34d399;">[Received Influx]</strong> <strong>${i.name}</strong></span>
-                                  <span><span class="statement-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:10px;">Income to ${i.paymentMethod || 'GPay'}</span> <strong style="color:var(--success); margin-left:10px;">+${currentCurrency}${i.amount.toFixed(2)}</strong></span>`
+                    htmlContent: `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${i.timeStamp}</span><strong style="color:#34d399;">[Received Influx]</strong> <strong>${i.name}</strong> ${receiptBtn}</span>
+                                  <span><span class="statement-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:10px;">to ${i.paymentMethod || 'GPay'}</span> <strong style="color:var(--success); margin-left:10px;">+${currentCurrency}${i.amount.toFixed(2)}</strong></span>`
+                });
+            });
+
+            subscriptions.forEach(s => {
+                const receiptBtn = s.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${s.receiptUrl}')">📄 View Terms</button>` : '';
+                timeline.push({
+                    sortKey: s.id,
+                    htmlContent: `<span><span style="color:#8b5cf6; font-size:11px; margin-right:12px;">🔄 Recurring</span><strong>Subscription Commitment: ${s.name}</strong> ${receiptBtn}</span>
+                                  <span><span class="statement-badge" style="background:rgba(139,92,246,0.15); color:#c084fc; font-size:10px;">via ${s.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${s.amount.toFixed(2)}</strong></span>`
                 });
             });
 
@@ -118,21 +230,17 @@
                 const transferLabel = t.directionType === "GPayToCash" ? "📱 GPay Bank ➔ 💵 Hand Cash" : "💵 Hand Cash ➔ 📱 GPay Bank";
                 timeline.push({
                     sortKey: t.id,
-                    timestamp: t.timestamp,
                     htmlContent: `<span><span style="color:#fbbf24; font-size:11px; margin-right:12px;">🔄 ${t.timestamp}</span><strong>Internal Wallet Exchange</strong> <small style="color:var(--text-muted); font-size:12px;">(${transferLabel})</small></span>
                                   <span><span class="statement-badge" style="background:rgba(79,70,229,0.15); color:#a5b4fc; font-size:10px;">Wallet Shift</span> <strong style="color:#a5b4fc; margin-left:10px;">${currentCurrency}${t.amountValue.toFixed(2)}</strong></span>`
                 });
             });
 
-            // Sort timeline so newest events appear at the very top
             timeline.sort((a, b) => b.sortKey - a.sortKey);
-
             const listEl = document.getElementById('parent-global-history-list');
             if (timeline.length === 0) {
                 listEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:30px;">No transaction statements logged for this cycle.</p>`;
                 return;
             }
-
             timeline.forEach(item => {
                 const li = document.createElement('li');
                 li.style.padding = '14px 18px';

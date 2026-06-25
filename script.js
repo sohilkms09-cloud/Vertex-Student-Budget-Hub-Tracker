@@ -72,6 +72,19 @@ const mockReceiptImages = [
     "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&q=80"
 ];
 
+// Helper utility to convert a selected local image file into a base64 encoded URL data block for standalone offline persistence
+function parseFileAsDataUrl(fileInputElement) {
+    return new Promise((resolve) => {
+        if (!fileInputElement || fileInputElement.files.length === 0) {
+            resolve("");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) { resolve(e.target.result); };
+        reader.readAsDataURL(fileInputElement.files[0]);
+    });
+}
+
 // =========================================================================
 // 🚪 GLOBAL DEPLOYMENT CORE RUNTIME LIFE PIPELINE
 // =========================================================================
@@ -115,12 +128,18 @@ document.addEventListener("DOMContentLoaded", () => {
     setupReceiptScanner();
 });
 
+// =========================================================================
+// 👛 CALCULATE REAL-TIME CURRENT WALLET ACCOUNT ASSETS ACCURATELY
+// =========================================================================
 function getRunningBalances() {
     let calculatedGPayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
     let calculatedCashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
 
-    const totalSubs = subscriptions.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    calculatedGPayExpenses += totalSubs;
+    const totalGPaySubs = subscriptions.filter(s => s.paymentMethod === 'GPay' || !s.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    const totalCashSubs = subscriptions.filter(s => s.paymentMethod === 'Cash').reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+    
+    calculatedGPayExpenses += totalGPaySubs;
+    calculatedCashExpenses += totalCashSubs;
 
     const calculatedGPayIncome = loggedIncomes.filter(i => i.paymentMethod === 'GPay' || !i.paymentMethod).reduce((sum, i) => sum + i.amount, 0);
     const calculatedCashIncome = loggedIncomes.filter(i => i.paymentMethod === 'Cash').reduce((sum, i) => sum + i.amount, 0);
@@ -178,10 +197,8 @@ function setupInteractionFeatures() {
     const searchInput = document.getElementById('search-input');
     const generateParentUrlBtn = document.getElementById('generate-parent-url-btn');
 
-    // REDIRECT TARGET LINK GENERATOR DIRECTLY TO PARENT.HTML FILE BASELINE
     if (generateParentUrlBtn) {
         generateParentUrlBtn.addEventListener('click', () => {
-            // Extracts current origin pathway pointing exactly to your new parent dashboard file
             const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html');
             navigator.clipboard.writeText(parentUrlLink).then(() => {
                 alert("Parent Portal Link copied to clipboard! Share this URL with your parents so they can access your simplified statement page.");
@@ -212,18 +229,27 @@ function setupInteractionFeatures() {
             }
         });
     }
+    
     if (quickGoalBtn) {
-        quickGoalBtn.addEventListener('click', () => {
+        quickGoalBtn.addEventListener('click', async () => {
             const quickGoalSelect = document.getElementById('quick-allocate-goal-select');
             const quickGoalAmount = document.getElementById('quick-allocate-amount');
+            const quickGoalMethod = document.getElementById('quick-allocate-method').value;
+            const goalAttachmentFile = document.getElementById('goal-attachment-file');
+            
             if (!quickGoalSelect || !quickGoalAmount) return;
             const targetId = parseInt(quickGoalSelect.value);
             const fundingValue = parseFloat(quickGoalAmount.value) || 0;
             if (fundingValue <= 0) { alert("Please enter a valid deposit value."); return; }
             
             const currentBalances = getRunningBalances();
-            if (currentBalances.gpay < fundingValue) {
-                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue}, but your GPay balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+            
+            if (quickGoalMethod === "GPay" && currentBalances.gpay < fundingValue) {
+                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue} from GPay, but your GPay balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                return;
+            }
+            if (quickGoalMethod === "Cash" && currentBalances.cash < fundingValue) {
+                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue} from Hand Cash, but your hand cash total is only ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
                 return;
             }
 
@@ -233,9 +259,23 @@ function setupInteractionFeatures() {
                 goalInstance.current += fundingValue;
                 const timestampNode = new Date();
                 
-                expenses.push({ id: Date.now(), name: `💰 Goal Deposit: ${goalInstance.name}`, amount: fundingValue, personalShare: fundingValue, category: "Socials", paymentMethod: "GPay", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: "" });
+                let encodedFileUrl = await parseFileAsDataUrl(goalAttachmentFile);
+
+                expenses.push({ 
+                    id: Date.now(), 
+                    name: `💰 Goal Deposit: ${goalInstance.name}`, 
+                    amount: fundingValue, 
+                    personalShare: fundingValue, 
+                    category: "Socials", 
+                    paymentMethod: quickGoalMethod, 
+                    day: timestampNode.getDate(), 
+                    timeStamp: captureChronologicalTimestamp(timestampNode), 
+                    receiptUrl: encodedFileUrl 
+                });
+                
                 localStorage.setItem('savingsGoals', JSON.stringify(savingsGoals));
                 quickGoalAmount.value = '';
+                if(goalAttachmentFile) goalAttachmentFile.value = '';
                 updateDashboard(); renderExpenses(); renderHeatmap();
             }
         });
@@ -266,14 +306,28 @@ function setupInteractionFeatures() {
         });
     }
     if (incomeForm) {
-        incomeForm.addEventListener('submit', (e) => {
+        incomeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const incName = document.getElementById('income-name').value;
             const incAmount = parseFloat(document.getElementById('income-amount').value) || 0;
             const incType = document.getElementById('income-source-type').value;
             const incMethod = document.getElementById('income-method').value;
+            const incomeAttachmentFile = document.getElementById('income-attachment-file');
+            
             const timestampNode = new Date();
-            loggedIncomes.push({ id: Date.now(), name: incName, amount: incAmount, typeLabel: incType, paymentMethod: incMethod, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode) });
+            let encodedFileUrl = await parseFileAsDataUrl(incomeAttachmentFile);
+
+            loggedIncomes.push({ 
+                id: Date.now(), 
+                name: incName, 
+                amount: incAmount, 
+                typeLabel: incType, 
+                paymentMethod: incMethod, 
+                day: timestampNode.getDate(), 
+                timeStamp: captureChronologicalTimestamp(timestampNode),
+                receiptUrl: encodedFileUrl
+            });
+            
             localStorage.setItem('loggedIncomes', JSON.stringify(loggedIncomes));
             incomeForm.reset(); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog();
         });
@@ -318,11 +372,39 @@ function setupInteractionFeatures() {
             goalForm.reset(); updateDashboard();
         });
     }
+    
     if (document.getElementById('subscription-form')) {
-        document.getElementById('subscription-form').addEventListener('submit', (e) => {
-            e.preventDefault(); const nameEl = document.getElementById('sub-name'); const amountEl = document.getElementById('sub-amount');
-            subscriptions.push({ id: Date.now(), name: nameEl.value, amount: parseFloat(amountEl.value) || 0 }); 
-            document.getElementById('subscription-form').reset(); updateDashboard(); renderSubscriptions();
+        document.getElementById('subscription-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const nameEl = document.getElementById('sub-name'); 
+            const amountEl = document.getElementById('sub-amount');
+            const methodEl = document.getElementById('sub-method').value;
+            const subAttachmentFile = document.getElementById('sub-attachment-file');
+            const amountVal = parseFloat(amountEl.value) || 0;
+
+            const currentBalances = getRunningBalances();
+            if (methodEl === "GPay" && currentBalances.gpay < amountVal) {
+                alert(`Insufficient GPay Assets! Cannot initialize commitment for ${nameEl.value} (Requires ${currentCurrency}${amountVal.toFixed(2)}). Available balance: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                return;
+            }
+            if (methodEl === "Cash" && currentBalances.cash < amountVal) {
+                alert(`Insufficient Cash Assets! Cannot initialize commitment for ${nameEl.value} (Requires ${currentCurrency}${amountVal.toFixed(2)}). Available hand portfolio: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                return;
+            }
+
+            let encodedFileUrl = await parseFileAsDataUrl(subAttachmentFile);
+
+            subscriptions.push({ 
+                id: Date.now(), 
+                name: nameEl.value, 
+                amount: amountVal, 
+                paymentMethod: methodEl,
+                receiptUrl: encodedFileUrl
+            }); 
+            
+            document.getElementById('subscription-form').reset(); 
+            updateDashboard(); 
+            renderSubscriptions();
         });
     }
     if (setBudgetBtn) {
@@ -375,20 +457,15 @@ function setupInteractionFeatures() {
         });
     }
     if (exportCsvBtn) {
-        exportCsvBtn.addEventListener('click', () => {
-            let csvContent = "Type,Timestamp,Description,Category,Method,Value\n";
-            expenses.forEach(e => { csvContent += `"Expense", "${e.timeStamp || 'N/A'}", "${e.name}", "${e.category}", "${e.paymentMethod || 'GPay'}", -${e.amount}\n`; });
-            loggedIncomes.forEach(i => { csvContent += `"Income", "${i.timeStamp || 'N/A'}", "${i.name}", "${i.typeLabel}", "${i.paymentMethod || 'GPay'}", +${i.amount}\n`; });
-            const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURI(csvContent)); downloadAnchor.setAttribute('download', 'Statements.csv'); downloadAnchor.click();
-        });
+        exportCsvBtn.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURI("Type,Timestamp,Description,Category,Method,Value\n"));
     }
     if (expenseForm) {
-        expenseForm.addEventListener('submit', (e) => {
+        expenseForm.addEventListener('submit', async (e) => {
             e.preventDefault(); const timestampNode = new Date(); const totalCostInput = parseFloat(document.getElementById('expense-amount').value) || 0;
             const roommateTotalCount = document.getElementById('roommate-total-count');
             let share = totalCostInput; if (document.getElementById('split-bill-checkbox') && document.getElementById('split-bill-checkbox').checked) share = totalCostInput / ((parseInt(roommateTotalCount.value) || 1) + 1);
             let fileAttachment = document.getElementById('expense-attachment-file');
-            let url = fileAttachment && fileAttachment.files.length > 0 ? URL.createObjectURL(fileAttachment.files[0]) : "";
+            let encodedFileUrl = await parseFileAsDataUrl(fileAttachment);
             
             const methodInput = document.getElementById('expense-method').value;
 
@@ -402,7 +479,7 @@ function setupInteractionFeatures() {
                 return;
             }
 
-            expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, paymentMethod: methodInput, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: url });
+            expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, paymentMethod: methodInput, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: encodedFileUrl });
             expenseForm.reset(); if (document.getElementById('roommate-count-drawer')) document.getElementById('roommate-count-drawer').style.display = 'none';
             updateDashboard(); renderExpenses(); renderHeatmap();
         });
@@ -526,11 +603,15 @@ window.renderReminders = function() {
 window.deleteReminder = function(id) { remindersList = remindersList.filter(item => item.id !== id); renderReminders(); };
 
 function renderSubscriptions() {
-    const subscriptionList = document.getElementById('subscription-list');
-    if (!subscriptionList) return;
-    subscriptionList.innerHTML = '';
+    const subscriptionListEl = document.getElementById('subscription-list');
+    if (!subscriptionListEl) return;
+    subscriptionListEl.innerHTML = '';
     subscriptions.forEach(item => {
-        const li = document.createElement('li'); li.innerHTML = `<span>🔄 <strong>${item.name}</strong></span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteSubscription(${item.id})">❌</button></span>`; subscriptionList.appendChild(li);
+        const li = document.createElement('li'); 
+        const method = item.paymentMethod || "GPay";
+        const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
+        li.innerHTML = `<span>🔄 <strong>${item.name}</strong> <small style="color:var(--text-muted); font-size:11px; margin-left:6px;">[via ${method}]</small> ${receiptBtn}</span><span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteSubscription(${item.id})">❌</button></span>`; 
+        subscriptionListEl.appendChild(li);
     });
 }
 
@@ -855,17 +936,16 @@ function renderExpenses() {
         if (query && !item.name.toLowerCase().includes(query) && !item.category.toLowerCase().includes(query)) return;
         
         const li = document.createElement('li');
-        
         const walletMethod = item.paymentMethod || "GPay";
         const methodBadgeColor = walletMethod === "GPay" ? "#38bdf8" : "#f59e0b";
         const methodBadgeStyle = `background: rgba(255,255,255,0.04); border-left: 3px solid ${methodBadgeColor}; padding: 3px 8px; border-radius: 4px; font-size:11px; font-weight:700; color:var(--text-main); margin-left:8px; display:inline-block;`;
         const accountColumnBadge = `<span style="${methodBadgeStyle}">${walletMethod === "GPay" ? "📱 GPay" : "💵 Cash"}</span>`;
-        
+        const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
+
         if (item.type === 'expense') {
-            const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
             li.innerHTML = `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${item.timeStamp}</span><strong>${item.name}</strong> <small>(${item.category})</small> ${accountColumnBadge} ${receiptBtn}</span><span><span style="color:var(--danger); font-weight:700;">-</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteExpense(${item.id})">❌</button></span>`;
         } else {
-            li.innerHTML = `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${item.timeStamp}</span><strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong> ${accountColumnBadge}</span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
+            li.innerHTML = `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${item.timeStamp}</span><strong style="color:#34d399;">[Income]</strong> <strong>${item.name}</strong> ${accountColumnBadge} ${receiptBtn}</span><span><span style="color:var(--success); font-weight:700;">+</span>${currentCurrency}${item.amount.toFixed(2)} <button class="delete-btn" onclick="deleteIncome(${item.id})">❌</button></span>`;
         }
         expenseList.appendChild(li);
     });
@@ -887,7 +967,8 @@ function renderIncomeHistoryLog() {
     loggedIncomes.forEach(item => {
         const li = document.createElement('li'); li.style.marginBottom = '6px';
         const methodDisplay = item.paymentMethod ? ` [${item.paymentMethod}]` : '';
-        li.innerHTML = `<div><strong>${item.name}</strong><br><small style="color:#06b6d4;">${item.timeStamp}${methodDisplay}</small></div><div><span style="color:var(--success);">+${currentCurrency}${item.amount.toFixed(2)}</span> <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})">❌</button></div>`;
+        const receiptBtn = item.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${item.receiptUrl}')">📄 View</button>` : '';
+        li.innerHTML = `<div><strong>${item.name}</strong> ${receiptBtn}<br><small style="color:#06b6d4;">${item.timeStamp}${methodDisplay}</small></div><div><span style="color:var(--success);">+${currentCurrency}${item.amount.toFixed(2)}</span> <button class="delete-btn" onclick="deleteIncomeFromLog(${item.id})">❌</button></div>`;
         incomeHistoryListEl.appendChild(li);
     });
 }
@@ -945,3 +1026,9 @@ function initTrendChart() {
 }
 
 window.updateTrendChart = function() { if (trendChart) { trendChart.data.labels = historyLog.map(i => i.label); trendChart.data.datasets[0].data = historyLog.map(i => i.score); trendChart.data.datasets[1].data = historyLog.map(i => i.spent); trendChart.update(); } }
+// Locate this block inside script.js:
+const savedName = sessionStorage.getItem('userDisplayName');
+if (savedName && document.getElementById('user-display-name')) {
+    // Modified with .toUpperCase() here:
+     " 🎓"+" " + document.getElementById('user-display-name').innerText = savedName.split(' ')[0].toUpperCase();
+}

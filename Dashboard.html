@@ -29,7 +29,7 @@
             </div>
             
             <div class="center-user-identity">
-                <span id="user-display-name">Sohil 🎓</span>
+                <span id="user-display-name">🎓 SOHIL </span>
             </div>
 
             <div class="auth-hud-right-corner">
@@ -37,7 +37,7 @@
             </div>
         </div>
 
-        <h1>✨ Vertex Student Budget Hub Tracker</h1>
+        <h1> ✨ Vertex Student Budget Hub Tracker</h1>
 
         <div class="dashboard-tabs-bar">
             <button class="tab-trigger active" onclick="switchActiveTab(event, 'tab-overview')">📊 Overview</button>
@@ -239,6 +239,11 @@
                             <option value="GPay">📱 Deposit Directly to GPay</option>
                             <option value="Cash">💵 Hold as Physical In-Hand Cash</option>
                         </select>
+
+                        <div class="file-attachment-row">
+                            <label class="file-attachment-label">📁 Attach Income Document / Receipt Image (Optional):</label>
+                            <input type="file" id="income-attachment-file" accept="image/*">
+                        </div>
                         
                         <button type="submit" style="background: var(--success);">Inject Cash Into Budget</button>
                     </form>
@@ -283,10 +288,21 @@
 
                     <div style="background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed var(--glass-border);">
                         <h4 style="font-size: 12px; color: #a5b4fc; margin-bottom: 8px;">💰 Quick Fund Allocator</h4>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="quick-allocate-goal-select" class="select-dropdown-box" style="margin:0; flex:2;"></select>
-                            <input type="number" id="quick-allocate-amount" placeholder="Amount" style="margin:0; flex:1;">
-                            <button id="quick-allocate-btn" type="button" style="width:auto; background: var(--success);">Deposit</button>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <select id="quick-allocate-goal-select" class="select-dropdown-box" style="margin:0;"></select>
+                            <input type="number" id="quick-allocate-amount" placeholder="Amount" style="margin:0;">
+                            
+                            <select id="quick-allocate-method" class="select-dropdown-box" style="margin:0;">
+                                <option value="GPay">📱 Pay from GPay Account</option>
+                                <option value="Cash">💵 Pay from Hand Cash Portfolio</option>
+                            </select>
+
+                            <div class="file-attachment-row">
+                                <label class="file-attachment-label">📁 Attach Goal Allocation Receipt (Optional):</label>
+                                <input type="file" id="goal-attachment-file" accept="image/*">
+                            </div>
+                            
+                            <button id="quick-allocate-btn" type="button" style="background: var(--success);">Deposit to Milestone</button>
                         </div>
                     </div>
 
@@ -360,6 +376,17 @@
                     <form id="subscription-form" class="expense-vertical-form" style="margin-top: 10px; margin-bottom: 15px;">
                         <input type="text" id="sub-name" placeholder="Subscription Name (e.g. Spotify Student)" required>
                         <input type="number" id="sub-amount" placeholder="Monthly Cost" required>
+                        
+                        <select id="sub-method" class="select-dropdown-box" required>
+                            <option value="GPay">📱 Auto-Deduct via GPay</option>
+                            <option value="Cash">💵 Deduct via Hand Cash</option>
+                        </select>
+
+                        <div class="file-attachment-row">
+                            <label class="file-attachment-label">📁 Attach Subscription Form / Terms View (Optional):</label>
+                            <input type="file" id="sub-attachment-file" accept="image/*">
+                        </div>
+                        
                         <button type="submit" style="background: var(--accent);">Add Subscription</button>
                     </form>
                     <div style="font-size: 14px; margin-bottom: 10px; font-weight: bold; color: #a5b4fc;">
@@ -374,6 +401,13 @@
             <div class="glass-card">
                 <h2>🛡️ Category Spending Cap Warning Dashboard</h2>
                 <div id="category-caps-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;"></div>
+            </div>
+
+            <div class="glass-card">
+                <h2><h2>🗣️ AI Insights Pacing Summary Matrix</h2>
+                <div class="ai-insights-panel">
+                    <p id="ai-insight-text">Syncing campus budget streams...</p>
+                </div>
             </div>
 
             <div class="glass-card">
