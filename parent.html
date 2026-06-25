@@ -101,7 +101,7 @@
         }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body class="dark-theme">
 
@@ -111,7 +111,7 @@
             <div class="parent-mode-badge">👨‍👩‍👦 Parent View Portal</div>
             <h1 class="parent-title-main">Vertex Budget Hub</h1>
             <div class="student-identity-badge">
-                <p>Official Read-Only Financial Statement Overview for <span id="user-display-name" class="student-name-highlight"> STUDENT 🎓 </span></p>
+                <p>Official Read-Only Financial Statement Overview for <span id="user-display-name" class="student-name-highlight"> LOADING... 🎓 </span></p>
             </div>
         </div>
 
@@ -132,7 +132,7 @@
         <div class="glass-card" style="border-top: 4px solid var(--accent);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h2>Complete Transaction & Activity History</h2>
-                <span style="font-size: 12px; color: var(--text-muted);">Real-Time Sync</span>
+                <span style="font-size: 12px; color: var(--text-muted);">Real-Time Cloud Sync</span>
             </div>
             <ul id="parent-global-history-list" class="ledger-scroller-view" style="max-height: 600px; gap: 10px;"></ul>
         </div>
@@ -151,127 +151,142 @@
 
     <script>
         const firebaseConfig = {
-  apiKey: "AIzaSyBMCi07hJv05ks9iJfO1H0DUpsVemyidOw",
-  authDomain: "vertex-budget-hub.firebaseapp.com",
-  projectId: "vertex-budget-hub",
-  storageBucket: "vertex-budget-hub.firebasestorage.app",
-  messagingSenderId: "471027628472",
-  appId: "1:471027628472:web:52a03ec675fb06bf25774d"
-};
+            apiKey: "AIzaSyBMCi07hJv05ks9iJfO1H0DUpsVemyidOw",
+            authDomain: "vertex-budget-hub.firebaseapp.com",
+            projectId: "vertex-budget-hub",
+            storageBucket: "vertex-budget-hub.firebasestorage.app",
+            messagingSenderId: "471027628472",
+            appId: "1:471027628472:web:52a03ec675fb06bf25774d"
+        };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-        document.addEventListener("DOMContentLoaded", () => {
+        // Initialize Firebase Compatibility Instance
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+
+        document.addEventListener("DOMContentLoaded", async () => {
             const urlParams = new URLSearchParams(window.location.search);
             let sharedStudentName = urlParams.get('student');
 
+            // Fallback backup values check
             if (!sharedStudentName) {
-                sharedStudentName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
+                sharedStudentName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || "STUDENT";
             }
 
+            // Capitalize and display identity label instantly
             const parentNameDisplay = document.getElementById('user-display-name');
-            if (parentNameDisplay) {
-                if (sharedStudentName) {
-                    parentNameDisplay.innerText = " " + sharedStudentName.split(' ')[0].toUpperCase() + " 🎓";
-                } else {
-                    parentNameDisplay.innerText = " STUDENT 🎓";
+            if (parentNameDisplay && sharedStudentName) {
+                parentNameDisplay.innerText = " " + decodeURIComponent(sharedStudentName).split(' ')[0].toUpperCase() + " 🎓";
+            }
+
+            // Pull live targeted data structures from Cloud Database instead of empty LocalStorage
+            const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+            const docRef = db.collection("student_budgets").doc(userIdentifier);
+
+            try {
+                const docSnap = await docRef.get();
+                if (docSnap.exists) {
+                    const cloudData = docSnap.data();
+
+                    const gpayInitial = cloudData.gpayWalletInitial ?? 0;
+                    const cashInitial = cloudData.cashWalletInitial ?? 0;
+                    const expenses = cloudData.expenses ?? [];
+                    const subscriptions = cloudData.subscriptions ?? [];
+                    const loggedIncomes = cloudData.loggedIncomes ?? [];
+                    const internalTransfers = cloudData.internalTransfers ?? [];
+                    const currentCurrency = cloudData.currency ?? '₹';
+
+                    const lightbox = document.getElementById('receipt-lightbox');
+                    const target = document.getElementById('lightbox-render-target');
+                    
+                    window.openReceiptLightbox = function(url) {
+                        if (target && lightbox) {
+                            target.src = url;
+                            lightbox.style.display = 'flex';
+                        }
+                    };
+                    
+                    if (document.getElementById('close-lightbox-btn')) {
+                        document.getElementById('close-lightbox-btn').addEventListener('click', () => { lightbox.style.display = 'none'; });
+                    }
+                    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = 'none'; });
+
+                    let gpayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
+                    let cashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
+                    
+                    const totalGPaySubs = subscriptions.filter(s => s.paymentMethod === 'GPay' || !s.paymentMethod).reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+                    const totalCashSubs = subscriptions.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
+                    
+                    gpayExpenses += totalGPaySubs;
+                    cashExpenses += totalCashSubs;
+
+                    const gpayIncome = loggedIncomes.filter(i => i.paymentMethod === 'GPay' || !i.paymentMethod).reduce((sum, i) => sum + i.amount, 0);
+                    const cashIncome = loggedIncomes.filter(i => i.paymentMethod === 'Cash').reduce((sum, i) => sum + i.amount, 0);
+
+                    const transfersToCash = internalTransfers.filter(t => t.directionType === 'GPayToCash').reduce((sum, t) => sum + t.amountValue, 0);
+                    const transfersToGPay = internalTransfers.filter(t => t.directionType === 'CashToGPay').reduce((sum, t) => sum + t.amountValue, 0);
+
+                    const finalGPay = gpayInitial + gpayIncome - gpayExpenses - transfersToCash + transfersToGPay;
+                    const finalCash = cashInitial + cashIncome - cashExpenses + transfersToCash - transfersToGPay;
+
+                    document.getElementById('parent-gpay-display').innerText = currentCurrency + finalGPay.toFixed(2);
+                    document.getElementById('parent-cash-display').innerText = currentCurrency + finalCash.toFixed(2);
+
+                    let timeline = [];
+
+                    expenses.forEach(e => {
+                        const receiptBtn = e.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${e.receiptUrl}')">📄 View Receipt</button>` : '';
+                        timeline.push({
+                            sortKey: e.id,
+                            htmlContent: `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${e.timeStamp}</span><strong>${e.name}</strong> <small>(${e.category})</small> ${receiptBtn}</span>
+                                          <span><span class="statement-badge" style="background:rgba(239,68,68,0.15); color:var(--danger); font-size:10px;">via ${e.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${e.amount.toFixed(2)}</strong></span>`
+                        });
+                    });
+
+                    loggedIncomes.forEach(i => {
+                        const receiptBtn = i.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${i.receiptUrl}')">📄 View Doc</button>` : '';
+                        timeline.push({
+                            sortKey: i.id,
+                            htmlContent: `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${i.timeStamp}</span><strong style="color:#34d399;">[Received Influx]</strong> <strong>${i.name}</strong> ${receiptBtn}</span>
+                                          <span><span class="statement-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:10px;">to ${i.paymentMethod || 'GPay'}</span> <strong style="color:var(--success); margin-left:10px;">+${currentCurrency}${i.amount.toFixed(2)}</strong></span>`
+                        });
+                    });
+
+                    subscriptions.forEach(s => {
+                        const receiptBtn = s.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${s.receiptUrl}')">📄 View Terms</button>` : '';
+                        timeline.push({
+                            sortKey: s.id,
+                            htmlContent: `<span><span style="color:#8b5cf6; font-size:11px; margin-right:12px;">🔄 Recurring</span><strong>Subscription Commitment: ${s.name}</strong> ${receiptBtn}</span>
+                                          <span><span class="statement-badge" style="background:rgba(139,92,246,0.15); color:#c084fc; font-size:10px;">via ${s.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${s.amount.toFixed(2)}</strong></span>`
+                        });
+                    });
+
+                    internalTransfers.forEach(t => {
+                        const transferLabel = t.directionType === "GPayToCash" ? "📱 GPay Bank ➔ 💵 Hand Cash" : "💵 Hand Cash ➔ 📱 GPay Bank";
+                        timeline.push({
+                            sortKey: t.id,
+                            htmlContent: `<span><span style="color:#fbbf24; font-size:11px; margin-right:12px;">🔄 ${t.timestamp}</span><strong>Internal Wallet Exchange</strong> <small style="color:var(--text-muted); font-size:12px;">(${transferLabel})</small></span>
+                                          <span><span class="statement-badge" style="background:rgba(79,70,229,0.15); color:#a5b4fc; font-size:10px;">Wallet Shift</span> <strong style="color:#a5b4fc; margin-left:10px;">${currentCurrency}${t.amountValue.toFixed(2)}</strong></span>`
+                        });
+                    });
+
+                    timeline.sort((a, b) => b.sortKey - a.sortKey);
+                    const listEl = document.getElementById('parent-global-history-list');
+                    if (timeline.length === 0) {
+                        listEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:30px;">No transaction statements logged for this cycle.</p>`;
+                        return;
+                    }
+                    listEl.innerHTML = "";
+                    timeline.forEach(item => {
+                        const li = document.createElement('li');
+                        li.style.padding = '14px 18px';
+                        li.innerHTML = item.htmlContent;
+                        listEl.appendChild(li);
+                    });
                 }
+            } catch (error) {
+                console.error("Cloud Node Sync Error:", error);
+                document.getElementById('parent-global-history-list').innerHTML = `<p style="color:var(--danger); font-size:13px; text-align:center; padding:30px;">Failed to synchronize with server database records.</p>`;
             }
-
-            const gpayInitial = parseFloat(localStorage.getItem('gpayWalletInitial')) || 0;
-            const cashInitial = parseFloat(localStorage.getItem('cashWalletInitial')) || 0;
-            const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-            const subscriptions = JSON.parse(localStorage.getItem('subscriptions')) || [];
-            const loggedIncomes = JSON.parse(localStorage.getItem('loggedIncomes')) || [];
-            const internalTransfers = JSON.parse(localStorage.getItem('internalTransfers')) || [];
-            const currentCurrency = localStorage.getItem('currency') || '₹';
-
-            const lightbox = document.getElementById('receipt-lightbox');
-            const target = document.getElementById('lightbox-render-target');
-            
-            window.openReceiptLightbox = function(url) {
-                if (target && lightbox) {
-                    target.src = url;
-                    lightbox.style.display = 'flex';
-                }
-            };
-            
-            if (document.getElementById('close-lightbox-btn')) {
-                document.getElementById('close-lightbox-btn').addEventListener('click', () => { lightbox.style.display = 'none'; });
-            }
-            lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = 'none'; });
-
-            let gpayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
-            let cashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
-            
-            const totalGPaySubs = subscriptions.filter(s => s.paymentMethod === 'GPay' || !s.paymentMethod).reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-            const totalCashSubs = subscriptions.filter(s => s.paymentMethod === 'Cash').reduce((sum, s) => sum + (parseFloat(s.amount) || 0), 0);
-            
-            gpayExpenses += totalGPaySubs;
-            cashExpenses += totalCashSubs;
-
-            const gpayIncome = loggedIncomes.filter(i => i.paymentMethod === 'GPay' || !i.paymentMethod).reduce((sum, i) => sum + i.amount, 0);
-            const cashIncome = loggedIncomes.filter(i => i.paymentMethod === 'Cash').reduce((sum, i) => sum + i.amount, 0);
-
-            const transfersToCash = internalTransfers.filter(t => t.directionType === 'GPayToCash').reduce((sum, t) => sum + t.amountValue, 0);
-            const transfersToGPay = internalTransfers.filter(t => t.directionType === 'CashToGPay').reduce((sum, t) => sum + t.amountValue, 0);
-
-            const finalGPay = gpayInitial + gpayIncome - gpayExpenses - transfersToCash + transfersToGPay;
-            const finalCash = cashInitial + cashIncome - cashExpenses + transfersToCash - transfersToGPay;
-
-            document.getElementById('parent-gpay-display').innerText = currentCurrency + finalGPay.toFixed(2);
-            document.getElementById('parent-cash-display').innerText = currentCurrency + finalCash.toFixed(2);
-
-            let timeline = [];
-
-            expenses.forEach(e => {
-                const receiptBtn = e.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${e.receiptUrl}')">📄 View Receipt</button>` : '';
-                timeline.push({
-                    sortKey: e.id,
-                    htmlContent: `<span><span style="color:var(--success); font-size:11px; margin-right:12px;">🗓️ ${e.timeStamp}</span><strong>${e.name}</strong> <small>(${e.category})</small> ${receiptBtn}</span>
-                                  <span><span class="statement-badge" style="background:rgba(239,68,68,0.15); color:var(--danger); font-size:10px;">via ${e.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${e.amount.toFixed(2)}</strong></span>`
-                });
-            });
-
-            loggedIncomes.forEach(i => {
-                const receiptBtn = i.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${i.receiptUrl}')">📄 View Doc</button>` : '';
-                timeline.push({
-                    sortKey: i.id,
-                    htmlContent: `<span><span style="color:#06b6d4; font-size:11px; margin-right:12px;">💰 ${i.timeStamp}</span><strong style="color:#34d399;">[Received Influx]</strong> <strong>${i.name}</strong> ${receiptBtn}</span>
-                                  <span><span class="statement-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-size:10px;">to ${i.paymentMethod || 'GPay'}</span> <strong style="color:var(--success); margin-left:10px;">+${currentCurrency}${i.amount.toFixed(2)}</strong></span>`
-                });
-            });
-
-            subscriptions.forEach(s => {
-                const receiptBtn = s.receiptUrl ? `<button class="view-bill-btn" onclick="openReceiptLightbox('${s.receiptUrl}')">📄 View Terms</button>` : '';
-                timeline.push({
-                    sortKey: s.id,
-                    htmlContent: `<span><span style="color:#8b5cf6; font-size:11px; margin-right:12px;">🔄 Recurring</span><strong>Subscription Commitment: ${s.name}</strong> ${receiptBtn}</span>
-                                  <span><span class="statement-badge" style="background:rgba(139,92,246,0.15); color:#c084fc; font-size:10px;">via ${s.paymentMethod || 'GPay'}</span> <strong style="color:var(--danger); margin-left:10px;">-${currentCurrency}${s.amount.toFixed(2)}</strong></span>`
-                });
-            });
-
-            internalTransfers.forEach(t => {
-                const transferLabel = t.directionType === "GPayToCash" ? "📱 GPay Bank ➔ 💵 Hand Cash" : "💵 Hand Cash ➔ 📱 GPay Bank";
-                timeline.push({
-                    sortKey: t.id,
-                    htmlContent: `<span><span style="color:#fbbf24; font-size:11px; margin-right:12px;">🔄 ${t.timestamp}</span><strong>Internal Wallet Exchange</strong> <small style="color:var(--text-muted); font-size:12px;">(${transferLabel})</small></span>
-                                  <span><span class="statement-badge" style="background:rgba(79,70,229,0.15); color:#a5b4fc; font-size:10px;">Wallet Shift</span> <strong style="color:#a5b4fc; margin-left:10px;">${currentCurrency}${t.amountValue.toFixed(2)}</strong></span>`
-                });
-            });
-
-            timeline.sort((a, b) => b.sortKey - a.sortKey);
-            const listEl = document.getElementById('parent-global-history-list');
-            if (timeline.length === 0) {
-                listEl.innerHTML = `<p style="color:var(--text-muted); font-size:13px; text-align:center; padding:30px;">No transaction statements logged for this cycle.</p>`;
-                return;
-            }
-            timeline.forEach(item => {
-                const li = document.createElement('li');
-                li.style.padding = '14px 18px';
-                li.innerHTML = item.htmlContent;
-                listEl.appendChild(li);
-            });
         });
     </script>
 </body>
