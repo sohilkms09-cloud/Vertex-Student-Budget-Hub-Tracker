@@ -163,7 +163,7 @@
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore(app);
 
-        document.addEventListener("DOMContentLoaded", async () => {
+        document.addEventListener("DOMContentLoaded", () => {
             const urlParams = new URLSearchParams(window.location.search);
             let sharedStudentName = urlParams.get('student');
 
@@ -175,15 +175,23 @@
             // Capitalize and display identity label instantly
             const parentNameDisplay = document.getElementById('user-display-name');
             if (parentNameDisplay && sharedStudentName) {
-                parentNameDisplay.innerText = " " + decodeURIComponent(sharedStudentName).split(' ')[0].toUpperCase() + " 🎓";
+                parentNameDisplay.innerText = " 🎓 " + decodeURIComponent(sharedStudentName).split(' ')[0].toUpperCase();
             }
 
-            // Pull live targeted data structures from Cloud Database instead of empty LocalStorage
-            const userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data";
+            // CRITICAL FIX: Resolve user record context dynamically via active session or fallback parameter structure
+            let userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail');
+            
+            // If the parent is on an external device, match data by formatting user account reference parameters
+            if (!userIdentifier && sharedStudentName) {
+                // If you store collections by email references, pass email context or map strings consistently
+                userIdentifier = sessionStorage.getItem('userEmail') || "shared_student_data"; 
+            }
+
             const docRef = db.collection("student_budgets").doc(userIdentifier);
 
-            try {
-                const docSnap = await docRef.get();
+            // Set up a REAL-TIME listener instead of a single fetch (.get())
+            // This ensures whenever an expense is added on Dashboard.html, the parent view auto-updates instantly
+            docRef.onSnapshot((docSnap) => {
                 if (docSnap.exists) {
                     const cloudData = docSnap.data();
 
@@ -204,11 +212,6 @@
                             lightbox.style.display = 'flex';
                         }
                     };
-                    
-                    if (document.getElementById('close-lightbox-btn')) {
-                        document.getElementById('close-lightbox-btn').addEventListener('click', () => { lightbox.style.display = 'none'; });
-                    }
-                    lightbox.addEventListener('click', (e) => { if (e.target === lightbox) lightbox.style.display = 'none'; });
 
                     let gpayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
                     let cashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, e) => sum + (parseFloat(e.personalShare) || parseFloat(e.amount) || 0), 0);
@@ -283,10 +286,9 @@
                         listEl.appendChild(li);
                     });
                 }
-            } catch (error) {
-                console.error("Cloud Node Sync Error:", error);
-                document.getElementById('parent-global-history-list').innerHTML = `<p style="color:var(--danger); font-size:13px; text-align:center; padding:30px;">Failed to synchronize with server database records.</p>`;
-            }
+            }, (error) => {
+                console.error("Cloud Listener Error:", error);
+            });
         });
     </script>
 </body>
