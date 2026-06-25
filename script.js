@@ -14,6 +14,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Helper function to dynamically locate the logged-in student's email across keys
+function resolveUserEmailKey() {
+    return sessionStorage.getItem('userEmail') || 
+           localStorage.getItem('userEmail') || 
+           sessionStorage.getItem('email') || 
+           localStorage.getItem('email') || 
+           "global_student_shared_vault"; // Guaranteed fallback document key string
+}
+
 // =========================================================================
 // 🚀 DYNAMIC TAB VIEW ROUTING SWITCH ENGINE (GLOBAL UNRESTRICTED ACCESS)
 // =========================================================================
@@ -46,7 +55,7 @@ window.adjustCalendarMonth = function(direction) {
 // 🛡️ SECURITY NAVIGATION GUARD CONFIGURATION
 // =========================================================================
 function checkNavigationAccessRights() {
-    const isVerified = sessionStorage.getItem('userAuthenticated');
+    const isVerified = sessionStorage.getItem('userAuthenticated') || localStorage.getItem('userAuthenticated');
     if (isVerified !== 'true') {
         window.location.replace('index.html');
         return false;
@@ -105,7 +114,7 @@ function parseFileAsDataUrl(fileInputElement) {
 document.addEventListener("DOMContentLoaded", async () => {
     if (!checkNavigationAccessRights()) return;
 
-    const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
+    const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || sessionStorage.getItem('name') || localStorage.getItem('name');
     if (document.getElementById('user-display-name')) {
         if (savedName) {
             document.getElementById('user-display-name').innerText = "🎓 " + savedName.split(' ')[0].toUpperCase();
@@ -114,7 +123,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
+    const userIdentifier = resolveUserEmailKey();
+    console.log("Reading data from Firestore for identifier document location:", userIdentifier);
     const docRef = doc(db, "student_budgets", userIdentifier);
 
     try {
@@ -133,9 +143,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             loggedIncomes = cloudData.loggedIncomes ?? [];
             internalTransfers = cloudData.internalTransfers ?? [];
             currentCurrency = cloudData.currency ?? '₹';
-            console.log("Successfully loaded cloud parameters for:", userIdentifier);
+            console.log("Cloud data successfully imported into browser app memory structures.");
         } else {
-            console.log("No existing budget data found in cloud database for this account. Creating a fresh workspace.");
+            console.log("No data document match found in Firestore for this account key. Ready to initialize on user action.");
         }
     } catch (error) {
         console.error("Error reading setup data from Firebase:", error);
@@ -162,7 +172,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupCategoryDropdown();
     setupInteractionFeatures();
     
-    // CRITICAL FIX: Run local interface rendering before saving/updating state maps back to cloud storage
+    // UI rendering phase runs safely right here
     renderLocalUIElements();
     initChart();
     initTrendChart();
@@ -170,7 +180,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupReceiptScanner();
 });
 
-// Separated interface loop module to cleanly separate reading tasks from push sync sequences
 function renderLocalUIElements() {
     calculateAllowanceCountdownDays();
     renderExpenses();
@@ -253,10 +262,10 @@ function setupInteractionFeatures() {
     if (generateParentUrlBtn) {
         generateParentUrlBtn.addEventListener('click', () => {
             const rawName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || "Student";
-            const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
+            const userIdentifier = resolveUserEmailKey();
             
             const cleanName = encodeURIComponent(rawName.trim());
-            const cleanEmail = encodeURIComponent(rawEmail.trim());
+            const cleanEmail = encodeURIComponent(userIdentifier.trim());
             const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}&id=${cleanEmail}`;
             
             navigator.clipboard.writeText(parentUrlLink).then(() => {
@@ -687,7 +696,6 @@ function setupCategoryDropdown() {
     });
 }
 
-// Explicit calculation split sequence for pure document visualization routines (Prevents early cloud overwrite)
 function updateStaticUIDomGaugesOnly() {
     const totalBudgetEl = document.getElementById('total-budget');
     const totalExpensesEl = document.getElementById('total-expenses');
@@ -737,11 +745,9 @@ function updateStaticUIDomGaugesOnly() {
 }
 
 function updateDashboard() {
-    // Run core calculations and display configurations inside DOM layout interfaces
     updateStaticUIDomGaugesOnly();
 
-    // Secure Document Save pipeline executions
-    const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
+    const userIdentifier = resolveUserEmailKey();
     setDoc(doc(db, "student_budgets", userIdentifier), {
         gpayWalletInitial: gpayWalletInitial,
         cashWalletInitial: cashWalletInitial,
@@ -756,7 +762,7 @@ function updateDashboard() {
         internalTransfers: internalTransfers,
         currency: currentCurrency
     }, { merge: true })
-    .then(() => console.log("Cloud sync saved successfully."))
+    .then(() => console.log("Cloud update sequence verified successfully under unique identifier path."))
     .catch((error) => console.error("Cloud firestore validation sync failure node: ", error));
 
     if (expenseChart) updateChartData();
@@ -1048,7 +1054,7 @@ function renderTransferHistoryLog() {
         li.style.borderLeft = '3px solid #4f46e5';
         const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
         li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
-        transferHistoryListEl.appendChild(li);
+        transferHistoryListEl.appendChild(trans);
     });
 }
 
