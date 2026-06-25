@@ -90,7 +90,6 @@ function parseFileAsDataUrl(fileInputElement) {
 document.addEventListener("DOMContentLoaded", () => {
     if (!checkNavigationAccessRights()) return;
 
-    // Fixed dynamic upper-case name visualization bug mapping framework directly here
     const savedName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName');
     if (document.getElementById('user-display-name')) {
         if (savedName) {
@@ -205,7 +204,11 @@ function setupInteractionFeatures() {
 
     if (generateParentUrlBtn) {
         generateParentUrlBtn.addEventListener('click', () => {
-            const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html');
+            const rawName = sessionStorage.getItem('userDisplayName') || localStorage.getItem('userDisplayName') || "Student";
+            const cleanName = encodeURIComponent(rawName.trim());
+            // Dynamically inject structural parameters mapping student identifier directly inside link stream
+            const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}`;
+            
             navigator.clipboard.writeText(parentUrlLink).then(() => {
                 alert("Parent Portal Link copied to clipboard! Share this URL with your parents so they can access your simplified statement page.");
             }).catch(() => {
