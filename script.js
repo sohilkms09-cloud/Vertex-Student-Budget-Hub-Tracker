@@ -20,7 +20,7 @@ function resolveUserEmailKey() {
            localStorage.getItem('userEmail') || 
            sessionStorage.getItem('email') || 
            localStorage.getItem('email') || 
-           "global_student_shared_vault"; // Guaranteed fallback document key string
+           "global_student_shared_vault";
 }
 
 // =========================================================================
@@ -124,7 +124,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const userIdentifier = resolveUserEmailKey();
-    console.log("Reading data from Firestore for identifier document location:", userIdentifier);
     const docRef = doc(db, "student_budgets", userIdentifier);
 
     try {
@@ -143,12 +142,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             loggedIncomes = cloudData.loggedIncomes ?? [];
             internalTransfers = cloudData.internalTransfers ?? [];
             currentCurrency = cloudData.currency ?? '₹';
-            console.log("Cloud data successfully imported into browser app memory structures.");
-        } else {
-            console.log("No data document match found in Firestore for this account key. Ready to initialize on user action.");
         }
     } catch (error) {
-        console.error("Error reading setup data from Firebase:", error);
+        alert("Firestore Fetch Error: " + error.message);
     }
 
     const currencySelect = document.getElementById('currency-select');
@@ -172,7 +168,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupCategoryDropdown();
     setupInteractionFeatures();
     
-    // UI rendering phase runs safely right here
     renderLocalUIElements();
     initChart();
     initTrendChart();
@@ -269,9 +264,9 @@ function setupInteractionFeatures() {
             const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html') + `?student=${cleanName}&id=${cleanEmail}`;
             
             navigator.clipboard.writeText(parentUrlLink).then(() => {
-                alert("Parent Portal Link copied to clipboard! Share this URL with your parents so they can access your simplified statement page.");
+                alert("Parent Portal Link copied to clipboard!");
             }).catch(() => {
-                alert("Failed to auto-copy link. Manually share this address path: " + parentUrlLink);
+                alert("Manual link copy path: " + parentUrlLink);
             });
         });
     }
@@ -313,11 +308,11 @@ function setupInteractionFeatures() {
             const currentBalances = getRunningBalances();
             
             if (quickGoalMethod === "GPay" && currentBalances.gpay < fundingValue) {
-                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue} from GPay, but your GPay balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                alert(`Insufficient Funds! Pool total balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
                 return;
             }
             if (quickGoalMethod === "Cash" && currentBalances.cash < fundingValue) {
-                alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue} from Hand Cash, but your hand cash total is only ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                alert(`Insufficient Funds! Pool total balance is only ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
                 return;
             }
 
@@ -407,11 +402,11 @@ function setupInteractionFeatures() {
             
             const currentBalances = getRunningBalances();
             if (direction === "GPayToCash" && currentBalances.gpay < amount) {
-                alert(`Insufficient GPay Balance! Cannot shift ${currentCurrency}${amount}. Available: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                alert(`Insufficient GPay Balance! Cannot shift ${currentCurrency}${amount}.`);
                 return;
             }
             if (direction === "CashToGPay" && currentBalances.cash < amount) {
-                alert(`Insufficient Hand Cash Balance! Cannot shift ${currentCurrency}${amount}. Available: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                alert(`Insufficient Hand Cash Balance! Cannot shift ${currentCurrency}${amount}.`);
                 return;
             }
 
@@ -449,11 +444,11 @@ function setupInteractionFeatures() {
 
             const currentBalances = getRunningBalances();
             if (methodEl === "GPay" && currentBalances.gpay < amountVal) {
-                alert(`Insufficient GPay Assets! Cannot initialize commitment for ${nameEl.value} (Requires ${currentCurrency}${amountVal.toFixed(2)}). Available balance: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                alert(`Insufficient GPay Assets! Cannot initialize commitment for ${nameEl.value}`);
                 return;
             }
             if (methodEl === "Cash" && currentBalances.cash < amountVal) {
-                alert(`Insufficient Cash Assets! Cannot initialize commitment for ${nameEl.value} (Requires ${currentCurrency}${amountVal.toFixed(2)}). Available hand portfolio: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                alert(`Insufficient Cash Assets! Cannot initialize commitment for ${nameEl.value}`);
                 return;
             }
 
@@ -542,11 +537,11 @@ function setupInteractionFeatures() {
 
             const currentBalances = getRunningBalances();
             if (methodInput === "GPay" && currentBalances.gpay < share) {
-                alert(`Insufficient GPay Wallet Balance! Cannot commit ${currentCurrency}${share.toFixed(2)} expense. Available asset: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
+                alert(`Insufficient GPay Wallet Balance!`);
                 return;
             }
             if (methodInput === "Cash" && currentBalances.cash < share) {
-                alert(`Insufficient Hand Cash Wallet Balance! Cannot commit ${currentCurrency}${share.toFixed(2)} expense. Available portfolio: ${currentCurrency}${currentBalances.cash.toFixed(2)}`);
+                alert(`Insufficient Hand Cash Wallet Balance!`);
                 return;
             }
 
@@ -762,8 +757,7 @@ function updateDashboard() {
         internalTransfers: internalTransfers,
         currency: currentCurrency
     }, { merge: true })
-    .then(() => console.log("Cloud update sequence verified successfully under unique identifier path."))
-    .catch((error) => console.error("Cloud firestore validation sync failure node: ", error));
+    .catch((error) => alert("Firestore Write Failure: " + error.message));
 
     if (expenseChart) updateChartData();
 }
@@ -1054,7 +1048,7 @@ function renderTransferHistoryLog() {
         li.style.borderLeft = '3px solid #4f46e5';
         const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
         li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
-        transferHistoryListEl.appendChild(trans);
+        transferHistoryListEl.appendChild(li);
     });
 }
 
