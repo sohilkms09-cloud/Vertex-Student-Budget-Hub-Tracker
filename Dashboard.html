@@ -15,6 +15,11 @@
 <body class="dark-theme">
 
     <div class="glass-container">
+        
+        <div id="parent-mode-notice-banner" class="glass-card status-good" style="display: none; border-color: #38bdf8; text-align: center; background: rgba(56, 189, 248, 0.08); padding: 14px; margin-bottom: 20px;">
+            <p style="margin: 0; font-weight: 700; color: #38bdf8; font-size: 14px;">ℹ️ Parent Portal Access: Active Read-Only Statement Mode</p>
+        </div>
+
         <div class="toolbar-realigned">
             <div class="currency-box">
                 <select id="currency-select">
@@ -36,10 +41,10 @@
 
         <div class="dashboard-tabs-bar">
             <button class="tab-trigger active" onclick="switchActiveTab(event, 'tab-overview')">📊 Overview</button>
-            <button class="tab-trigger" onclick="switchActiveTab(event, 'tab-loggers')">📸 AI Loggers</button>
-            <button class="tab-trigger" onclick="switchActiveTab(event, 'tab-flow')">💸 Flow Manager</button>
-            <button class="tab-trigger" onclick="switchActiveTab(event, 'tab-savings')">🎯 Savings & Fees</button>
-            <button class="tab-trigger" onclick="switchActiveTab(event, 'tab-reminders')">📅 Tasks & Subs</button>
+            <button id="nav-btn-loggers" class="tab-trigger" onclick="switchActiveTab(event, 'tab-loggers')">📸 AI Loggers</button>
+            <button id="nav-btn-flow" class="tab-trigger" onclick="switchActiveTab(event, 'tab-flow')">💸 Flow Manager</button>
+            <button id="nav-btn-savings" class="tab-trigger" onclick="switchActiveTab(event, 'tab-savings')">🎯 Savings & Fees</button>
+            <button id="nav-btn-reminders" class="tab-trigger" onclick="switchActiveTab(event, 'tab-reminders')">📅 Tasks & Subs</button>
             <button class="tab-trigger" onclick="switchActiveTab(event, 'tab-history')">📜 History & Analytics</button>
         </div>
 
@@ -67,6 +72,12 @@
                 </div>
             </div>
 
+            <div id="parent-link-generator-card" class="glass-card" style="border-left: 4px solid #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, rgba(15,23,42,0.2) 100%);">
+                <h2>🔗 Generate Parent View Portal Access Link</h2>
+                <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px; margin-bottom: 12px;">Copy this specialized URL link tracking configuration parameters to send over directly to your parents.</p>
+                <button id="generate-parent-url-btn" style="background: #10b981; width: auto; font-size: 13px; padding: 10px 20px;">📋 Copy Read-Only Parent Access Link</button>
+            </div>
+
             <div class="glass-card allowance-countdown-card">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                     <div>
@@ -84,7 +95,7 @@
                 <p id="daily-tip-text">💡 Syncing campus financial intelligence parameters...</p>
             </div>
 
-            <div class="glass-card">
+            <div id="control-panel-initial-baselines" class="glass-card">
                 <h2>Set Initial Starting Balances</h2>
                 <p style="color: var(--text-muted); font-size: 13px; margin-top: -4px; margin-bottom: 12px;">Initialize your baseline reserves for the active rolling track phase.</p>
                 <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">

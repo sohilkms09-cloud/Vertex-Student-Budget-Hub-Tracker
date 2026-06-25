@@ -115,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setupReceiptScanner();
 });
 
-// Helper parameters to look up balances instantly
 function getRunningBalances() {
     let calculatedGPayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
     let calculatedCashExpenses = expenses.filter(e => e.paymentMethod === 'Cash').reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
@@ -177,6 +176,20 @@ function setupInteractionFeatures() {
     const expenseForm = document.getElementById('expense-form-element');
     const currencySelect = document.getElementById('currency-select');
     const searchInput = document.getElementById('search-input');
+    const generateParentUrlBtn = document.getElementById('generate-parent-url-btn');
+
+    // REDIRECT TARGET LINK GENERATOR DIRECTLY TO PARENT.HTML FILE BASELINE
+    if (generateParentUrlBtn) {
+        generateParentUrlBtn.addEventListener('click', () => {
+            // Extracts current origin pathway pointing exactly to your new parent dashboard file
+            const parentUrlLink = window.location.origin + window.location.pathname.replace('Dashboard.html', 'parent.html');
+            navigator.clipboard.writeText(parentUrlLink).then(() => {
+                alert("Parent Portal Link copied to clipboard! Share this URL with your parents so they can access your simplified statement page.");
+            }).catch(() => {
+                alert("Failed to auto-copy link. Manually share this address path: " + parentUrlLink);
+            });
+        });
+    }
 
     if (document.getElementById('close-lightbox-btn')) {
         document.getElementById('close-lightbox-btn').addEventListener('click', () => { document.getElementById('receipt-lightbox').style.display = 'none'; });
@@ -208,7 +221,6 @@ function setupInteractionFeatures() {
             const fundingValue = parseFloat(quickGoalAmount.value) || 0;
             if (fundingValue <= 0) { alert("Please enter a valid deposit value."); return; }
             
-            // Check current availability bounds before adding goal deposits
             const currentBalances = getRunningBalances();
             if (currentBalances.gpay < fundingValue) {
                 alert(`Insufficient Funds! You tried to deposit ${currentCurrency}${fundingValue}, but your GPay balance is only ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
@@ -380,7 +392,6 @@ function setupInteractionFeatures() {
             
             const methodInput = document.getElementById('expense-method').value;
 
-            // FIX: INSUFFICIENT BALANCE GUARD VALIDATION CHECK 
             const currentBalances = getRunningBalances();
             if (methodInput === "GPay" && currentBalances.gpay < share) {
                 alert(`Insufficient GPay Wallet Balance! Cannot commit ${currentCurrency}${share.toFixed(2)} expense. Available asset: ${currentCurrency}${currentBalances.gpay.toFixed(2)}`);
@@ -561,7 +572,6 @@ function updateDashboard() {
     if (balanceLeftEl) balanceLeftEl.innerText = `${currentCurrency}${balance.toFixed(2)}`;
     if (totalSubscriptionsEl) totalSubscriptionsEl.innerText = `${currentCurrency}${totalSubs.toFixed(2)}`;
 
-    // Calculate current running values using shared helper method logic
     const currentBalances = getRunningBalances();
     if (gpayWalletDisplay) gpayWalletDisplay.innerText = `${currentCurrency}${currentBalances.gpay.toFixed(2)}`;
     if (cashWalletDisplay) cashWalletDisplay.innerText = `${currentCurrency}${currentBalances.cash.toFixed(2)}`;
@@ -716,7 +726,6 @@ function runScannerLogic(isValidBill) {
     const scannerLogStatus = document.getElementById('scanner-log-status');
     if (!scannerLaser || !scannerLogStatus) return;
     
-    // Check dynamic bounds beforehand
     const currentBalances = getRunningBalances();
     if (currentBalances.gpay < 850) {
         alert("OCR Scanner failed: Insufficient GPay Balance to auto-allocate Mock Scanned Books Receipt (Requires ₹850.00)");
@@ -832,7 +841,6 @@ function renderHeatmap() {
     }
 }
 
-// 📜 RE-ENGINEERED COLUMN ACCOUNT TRACKING LEDGER LIST WITH DISTINCT WAY MARKINGS
 function renderExpenses() {
     const expenseList = document.getElementById('expense-list');
     const searchInput = document.getElementById('search-input');
@@ -848,7 +856,6 @@ function renderExpenses() {
         
         const li = document.createElement('li');
         
-        // 3. Clear separate structural column styling indicators for tracking settlement accounts
         const walletMethod = item.paymentMethod || "GPay";
         const methodBadgeColor = walletMethod === "GPay" ? "#38bdf8" : "#f59e0b";
         const methodBadgeStyle = `background: rgba(255,255,255,0.04); border-left: 3px solid ${methodBadgeColor}; padding: 3px 8px; border-radius: 4px; font-size:11px; font-weight:700; color:var(--text-main); margin-left:8px; display:inline-block;`;
@@ -885,7 +892,6 @@ function renderIncomeHistoryLog() {
     });
 }
 
-// 2. NEW FIX: RENDER INTERNAL WALLET MONEY SHIFTS HISTORICAL LEDGERS
 function renderTransferHistoryLog() {
     const transferHistoryListEl = document.getElementById('transfer-history-list');
     if (!transferHistoryListEl) return;
