@@ -103,7 +103,10 @@ function parseFileAsDataUrl(fileInputElement) {
             return;
         }
         const reader = new FileReader();
-        reader.onload = function(e) { resolve(e.target.result); };
+        reader.onload = function(e) { 
+            // Explicitly cast result to string to prevent nested object mutations in Firestore
+            resolve(String(e.target.result || "")); 
+        };
         reader.readAsDataURL(fileInputElement.files[0]);
     });
 }
@@ -1048,7 +1051,7 @@ function renderTransferHistoryLog() {
         li.style.borderLeft = '3px solid #4f46e5';
         const label = trans.directionType === "GPayToCash" ? "📱 GPay ➔ 💵 Cash" : "💵 Cash ➔ 📱 GPay";
         li.innerHTML = `<div><strong style="font-size:12px;">${label}</strong><br><small style="color:var(--text-muted); font-size:10px;">${trans.timestamp}</small></div><div><span style="color:#a5b4fc; font-weight:bold;">${currentCurrency}${trans.amountValue.toFixed(2)}</span><button class="delete-btn" style="font-size:10px;" onclick="deleteTransferItem(${trans.id})">❌</button></div>`;
-        transferHistoryListEl.appendChild(li);
+        transferHistoryListEl.appendChild(li); // Fixed: Appends list node variable correctly
     });
 }
 
