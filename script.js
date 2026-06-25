@@ -114,7 +114,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }
 
-    // Prioritize localStorage to preserve login states safely
     const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
     const docRef = doc(db, "student_budgets", userIdentifier);
 
@@ -134,6 +133,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             loggedIncomes = cloudData.loggedIncomes ?? [];
             internalTransfers = cloudData.internalTransfers ?? [];
             currentCurrency = cloudData.currency ?? '₹';
+            console.log("Successfully loaded cloud parameters for:", userIdentifier);
+        } else {
+            console.log("No existing budget data found in cloud database for this account. Creating a fresh workspace.");
         }
     } catch (error) {
         console.error("Error reading setup data from Firebase:", error);
@@ -159,21 +161,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     displayRandomTip();
     setupCategoryDropdown();
     setupInteractionFeatures();
-    updateDashboard();
-    renderExpenses();
-    renderSubscriptions();
-    renderSavingsGoals();
-    renderReminders();
-    renderAcademicFeesTimeline();
-    calculateAllowanceCountdownDays();
-    renderHeatmap();
-    renderIncomeHistoryLog(); 
-    renderTransferHistoryLog();
+    
+    // CRITICAL FIX: Run local interface rendering before saving/updating state maps back to cloud storage
+    renderLocalUIElements();
     initChart();
     initTrendChart();
     setupVoiceRecognition();
     setupReceiptScanner();
 });
+
+// Separated interface loop module to cleanly separate reading tasks from push sync sequences
+function renderLocalUIElements() {
+    calculateAllowanceCountdownDays();
+    renderExpenses();
+    renderSubscriptions();
+    renderSavingsGoals();
+    renderReminders();
+    renderAcademicFeesTimeline();
+    renderHeatmap();
+    renderIncomeHistoryLog(); 
+    renderTransferHistoryLog();
+    updateStaticUIDomGaugesOnly();
+}
 
 function getRunningBalances() {
     let calculatedGPayExpenses = expenses.filter(e => e.paymentMethod === 'GPay' || !e.paymentMethod).reduce((sum, item) => sum + (parseFloat(item.personalShare) || parseFloat(item.amount) || 0), 0);
@@ -325,7 +334,7 @@ function setupInteractionFeatures() {
                 
                 quickGoalAmount.value = '';
                 if(goalAttachmentFile) goalAttachmentFile.value = '';
-                updateDashboard(); renderExpenses(); renderHeatmap();
+                updateDashboard(); renderLocalUIElements();
             }
         });
     }
@@ -377,7 +386,7 @@ function setupInteractionFeatures() {
                 receiptUrl: encodedFileUrl
             });
             
-            incomeForm.reset(); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog();
+            incomeForm.reset(); updateDashboard(); renderLocalUIElements();
         });
     }
     if (internalTransferForm) {
@@ -480,9 +489,7 @@ function setupInteractionFeatures() {
                 if (document.getElementById('cash-initial-input')) document.getElementById('cash-initial-input').placeholder = cashWalletInitial.toFixed(0);
                 
                 updateDashboard(); 
-                renderExpenses(); 
-                renderHeatmap();
-                if (expenseChart) updateChartData();
+                renderLocalUIElements();
             } else if (value <= 0 || isNaN(value)) {
                 alert("Please input a valid positive currency amount to configure baseline thresholds.");
             }
@@ -493,30 +500,22 @@ function setupInteractionFeatures() {
     if (currencySelect) {
         currencySelect.addEventListener('change', () => {
             currentCurrency = currencySelect.value;
-            
-            try { updateDashboard(); } catch(e) { console.error(e); }
-            try { renderExpenses(); } catch(e) { console.error(e); }
-            try { renderSubscriptions(); } catch(e) { console.error(e); }
-            try { renderHeatmap(); } catch(e) { console.error(e); }
-            try { renderReminders(); } catch(e) { console.error(e); }
-            try { renderAcademicFeesTimeline(); } catch(e) { console.error(e); }
-            try { renderIncomeHistoryLog(); } catch(e) { console.error(e); }
-            try { renderTransferHistoryLog(); } catch(e) { console.error(e); }
+            renderLocalUIElements();
             try { if (trendChart) updateTrendChart(); } catch(e) { console.error(e); }
         });
     }
     if (clearAllBtn) {
-        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; updateDashboard(); renderExpenses(); renderSubscriptions(); renderHeatmap(); renderReminders(); renderAcademicFeesTimeline(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog(); } });
+        clearAllBtn.addEventListener('click', () => { if (confirm("Wipe logs?")) { expenses = []; subscriptions = []; savingsGoals = []; remindersList = []; historyLog = []; academicFeesList = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0; updateDashboard(); renderLocalUIElements(); try { if (trendChart) updateTrendChart(); } catch(e) { console.error(e); } } });
     }
     if (archiveMonthBtn) {
-        document.getElementById('archive-month-btn').addEventListener('click', () => {
+        archiveMonthBtn.addEventListener('click', () => {
             const dynamicRollingBudgetCap = gpayWalletInitial + cashWalletInitial + loggedIncomes.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
             if (dynamicRollingBudgetCap <= 0 && expenses.length === 0) { alert("Cannot archive empty space!"); return; }
             const monthLabel = prompt("Enter a label (e.g. 'Jan'):"); if (!monthLabel) return;
             const outflow = expenses.reduce((sum, item) => sum + (item.personalShare || item.amount), 0) + subscriptions.reduce((sum, item) => sum + item.amount, 0);
             historyLog.push({ label: monthLabel, spent: outflow, score: getCurrentScoreValue(outflow, dynamicRollingBudgetCap) }); 
             expenses = []; loggedIncomes = []; internalTransfers = []; gpayWalletInitial = 0; cashWalletInitial = 0;
-            updateDashboard(); renderExpenses(); renderHeatmap(); updateTrendChart(); renderIncomeHistoryLog(); renderTransferHistoryLog();
+            updateDashboard(); renderLocalUIElements(); try { if (trendChart) updateTrendChart(); } catch(e) { console.error(e); }
         });
     }
     if (exportCsvBtn) {
@@ -544,7 +543,7 @@ function setupInteractionFeatures() {
 
             expenses.push({ id: Date.now(), name: document.getElementById('expense-name').value, amount: totalCostInput, personalShare: share, category: document.getElementById('expense-category').value, paymentMethod: methodInput, day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: encodedFileUrl });
             expenseForm.reset(); if (document.getElementById('roommate-count-drawer')) document.getElementById('roommate-count-drawer').style.display = 'none';
-            updateDashboard(); renderExpenses(); renderHeatmap();
+            updateDashboard(); renderLocalUIElements();
         });
     }
 }
@@ -688,13 +687,13 @@ function setupCategoryDropdown() {
     });
 }
 
-function updateDashboard() {
+// Explicit calculation split sequence for pure document visualization routines (Prevents early cloud overwrite)
+function updateStaticUIDomGaugesOnly() {
     const totalBudgetEl = document.getElementById('total-budget');
     const totalExpensesEl = document.getElementById('total-expenses');
     const balanceLeftEl = document.getElementById('balance-left');
     const totalSubscriptionsEl = document.getElementById('total-subscriptions');
     const roommatesOweTotal = document.getElementById('roommates-owe-total');
-
     const gpayWalletDisplay = document.getElementById('gpay-wallet-display');
     const cashWalletDisplay = document.getElementById('cash-wallet-display');
 
@@ -718,17 +717,6 @@ function updateDashboard() {
     if (gpayWalletDisplay) gpayWalletDisplay.innerText = `${currentCurrency}${currentBalances.gpay.toFixed(2)}`;
     if (cashWalletDisplay) cashWalletDisplay.innerText = `${currentCurrency}${currentBalances.cash.toFixed(2)}`;
 
-    const budgetCard = document.getElementById('budget-card');
-    if (budgetCard) {
-        budgetCard.className = 'metric-card';
-        if (dynamicRollingBudgetCap > 0) {
-            const percentSpent = (combinedOutflow / dynamicRollingBudgetCap) * 100;
-            if (percentSpent >= 90) budgetCard.classList.add('status-danger');
-            else if (percentSpent >= 70) budgetCard.classList.add('status-warning');
-            else budgetCard.classList.add('status-good');
-        } else { budgetCard.classList.add('status-good'); }
-    }
-
     const savingsPercentage = document.getElementById('savings-percentage');
     const savingsProgressFill = document.getElementById('savings-progress-fill');
     if (dynamicRollingBudgetCap > 0) {
@@ -741,11 +729,18 @@ function updateDashboard() {
             else if (remainingPercent < 40) savingsProgressFill.style.background = 'var(--warning)';
             else savingsProgressFill.style.background = 'linear-gradient(90deg, var(--success), #34d399)';
         }
-    } else {
-        if (savingsPercentage) savingsPercentage.innerText = '100% Left';
-        if (savingsProgressFill) savingsProgressFill.style.width = '100%';
     }
+    calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap);
+    generateAIInsights(combinedOutflow, dynamicRollingBudgetCap);
+    renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap);
+    analyzeUserHabitsStreaks();
+}
 
+function updateDashboard() {
+    // Run core calculations and display configurations inside DOM layout interfaces
+    updateStaticUIDomGaugesOnly();
+
+    // Secure Document Save pipeline executions
     const userIdentifier = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || "shared_student_data";
     setDoc(doc(db, "student_budgets", userIdentifier), {
         gpayWalletInitial: gpayWalletInitial,
@@ -761,13 +756,9 @@ function updateDashboard() {
         internalTransfers: internalTransfers,
         currency: currentCurrency
     }, { merge: true })
+    .then(() => console.log("Cloud sync saved successfully."))
     .catch((error) => console.error("Cloud firestore validation sync failure node: ", error));
 
-    calculateFinancialHealthScore(combinedOutflow, dynamicRollingBudgetCap);
-    generateAIInsights(combinedOutflow, dynamicRollingBudgetCap);
-    renderCategoryWarningsDashboard(totalSpent, dynamicRollingBudgetCap);
-    analyzeUserHabitsStreaks();
-    renderSavingsGoals(); 
     if (expenseChart) updateChartData();
 }
 
@@ -824,7 +815,7 @@ function renderSavingsGoals() {
     });
 }
 
-window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); updateDashboard(); };
+window.deleteGoal = function(id) { savingsGoals = savingsGoals.filter(g => g.id !== id); updateDashboard(); renderSavingsGoals(); };
 
 function analyzeUserHabitsStreaks() {
     const noSpendStreakValue = document.getElementById('no-spend-streak-value');
@@ -890,7 +881,7 @@ function runScannerLogic(isValidBill) {
         const timestampNode = new Date();
         expenses.push({ id: Date.now(), name: `[OCR Scan] Text Books Bundle`, amount: 850, personalShare: 850, category: "Books & Exams", paymentMethod: "GPay", day: timestampNode.getDate(), timeStamp: captureChronologicalTimestamp(timestampNode), receiptUrl: mockReceiptImages[Math.floor(Math.random() * mockReceiptImages.length)] });
         scannerLogStatus.innerText = `✅ Extracted Success!`;
-        updateDashboard(); renderExpenses(); renderHeatmap();
+        updateDashboard(); renderLocalUIElements();
     }, 2500);
 }
 
@@ -960,8 +951,7 @@ function setupVoiceRecognition() {
                 timeStamp: captureChronologicalTimestamp(timestampNode) 
             }); 
             updateDashboard(); 
-            renderExpenses(); 
-            renderHeatmap();
+            renderLocalUIElements();
         };
 
         recognition.onend = function() {
@@ -1068,9 +1058,9 @@ window.deleteTransferItem = function(id) {
     renderTransferHistoryLog();
 };
 
-window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); };
-window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
-window.deleteIncomeFromLog = function(id) { loggedIncomes = loggedIncomes.filter(i => i.id !== id); updateDashboard(); renderExpenses(); renderHeatmap(); renderIncomeHistoryLog(); };
+window.deleteExpense = function(id) { expenses = expenses.filter(item => item.id !== id); updateDashboard(); renderLocalUIElements(); };
+window.deleteIncome = function(id) { loggedIncomes = loggedIncomes.filter(item => item.id !== id); updateDashboard(); renderLocalUIElements(); };
+window.deleteIncomeFromLog = function(id) { loggedIncomes = loggedIncomes.filter(i => i.id !== id); updateDashboard(); renderLocalUIElements(); };
 
 function initChart() {
     const chartEl = document.getElementById('expense-chart'); if (!chartEl) return;
